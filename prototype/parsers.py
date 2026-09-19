@@ -90,6 +90,23 @@ def _match_rule(rule: dict, body: str) -> bool:
     return True  # 无 match 或未知类型：兜底规则（放在 parsers 列表最后）
 
 
+def _normalize(value, mapping: dict | None):
+    """取值归一化：value 经 mapping 映射到标准枚举；未命中返回 None（视为缺失）。"""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if mapping is None:
+        return s  # 无归一化表，原样返回
+    if s in mapping:
+        return mapping[s]
+    for k, mapped in mapping.items():
+        if str(k).strip().lower() == s.lower():
+            return mapped
+    return None
+
+
 def parse_configured(body: str, raw: str, src_name: str, cfg: dict) -> dict | None:
     """按来源配置解析告警。命中返回 signal dict，未命中返回 None。
 
@@ -115,7 +132,7 @@ def parse_configured(body: str, raw: str, src_name: str, cfg: dict) -> dict | No
             if val:
                 entities.append({"type": etype, "value": val})
 
-        return {
+        result = {
             "time": normalize_time(fields.get(mp.get("time", ""))),
             "source": src_name,
             "asset": fields.get(mp.get("asset", ""), "").strip(),
@@ -123,4 +140,16 @@ def parse_configured(body: str, raw: str, src_name: str, cfg: dict) -> dict | No
             "raw": raw,
             "entities": entities,
         }
+
+        # 威胁等级 / 攻击结果：字段名 + 取值归一化表，归一失败不产出（交给提醒逻辑）
+        if "severity" in mp:
+            sv = _normalize(fields.get(mp["severity"]), mp.get("severity_map"))
+            if sv is not None:
+                result["severity"] = sv
+        if "attack_result" in mp:
+            ar = _normalize(fields.get(mp["attack_result"]), mp.get("attack_result_map"))
+            if ar is not None:
+                result["attack_result"] = ar
+
+        return result
     return None

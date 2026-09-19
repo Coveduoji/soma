@@ -11,9 +11,10 @@ const PAGE_SIZE = 20;
 const STATUSES = ['New', 'In Progress', 'On Hold', 'Resolved', 'Closed'];
 const VERDICTS = ['True Positive', 'Suspicious', 'False Positive', 'Benign', 'Insufficient Data'];
 
-function severityTag(s: number) {
-  if (s >= 1.0) return <Tag color="red">高</Tag>;
-  if (s >= 0.8) return <Tag color="orange">中</Tag>;
+function riskTag(r: number | undefined) {
+  const v = r ?? 0;
+  if (v >= 0.3) return <Tag color="red">高</Tag>;
+  if (v >= 0.1) return <Tag color="orange">中</Tag>;
   return <Tag>低</Tag>;
 }
 
@@ -74,7 +75,7 @@ export default function Triage() {
       dataIndex: 'entities',
       render: (es: { type: string; value: string }[]) => es.map((e) => e.value).join(' · '),
     },
-    { title: '严重度', dataIndex: 'strength', width: 90, render: (s: number) => severityTag(s) },
+    { title: '风险', dataIndex: 'risk', width: 90, render: (r: number | undefined) => riskTag(r) },
     {
       title: '状态',
       dataIndex: 'status',

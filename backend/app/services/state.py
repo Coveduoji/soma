@@ -159,6 +159,7 @@ def get_detection_config() -> dict:
         "rag_limit": cfg.get("rag_limit", 5),
         "innate_conf": cfg.get("innate_conf", 0.95),
         "restore_conf": cfg.get("restore_conf", 0.9),
+        "risk_threshold": cfg.get("risk_threshold", 0.3),
         "tolerance_ttl_days": cfg.get("tolerance_ttl_days", 90),
         "mock_indicators": cfg.get("mock_indicators", [list(x) for x in llm.DEFAULT_INDICATORS]),
         "mock_no_hit": cfg.get("mock_no_hit", 0.15),

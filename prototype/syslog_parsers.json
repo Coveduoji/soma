@@ -36,7 +36,14 @@
               "host",
               "domain"
             ]
-          ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          }
         },
         "enabled": true
       },
@@ -75,7 +82,14 @@
               "file_md5",
               "hash"
             ]
-          ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          }
         }
       },
       {
@@ -108,7 +122,14 @@
               "dip",
               "ip"
             ]
-          ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          }
         }
       },
       {
@@ -147,7 +168,14 @@
               "host",
               "domain"
             ]
-          ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          }
         }
       }
     ]
@@ -177,7 +205,21 @@
               "XFF Header",
               "ip"
             ]
-          ]
+          ],
+          "severity": "Threat Level",
+          "severity_map": {
+            "Low": "low",
+            "Medium": "medium",
+            "High": "high",
+            "Critical": "critical"
+          },
+          "attack_result": "Action",
+          "attack_result_map": {
+            "Deny": "blocked",
+            "Block": "blocked",
+            "Allow": "success",
+            "Pass": "success"
+          }
         }
       }
     ]

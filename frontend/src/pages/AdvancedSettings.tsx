@@ -130,6 +130,16 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
     return `${sep} · asset=${m.asset || '-'} · ${ent} 实体`;
   };
 
+  // 来源的风险字段缺失提醒：map 未配 severity / attack_result 时标黄
+  const missingRiskFields = (src: string): string[] => {
+    const cfg = parsers?.[src];
+    const maps = (cfg?.parsers ?? []).map((r) => r.map || {});
+    const miss: string[] = [];
+    if (!maps.some((m) => m.severity)) miss.push('缺威胁等级');
+    if (!maps.some((m) => m.attack_result)) miss.push('缺攻击结果');
+    return miss;
+  };
+
   const toggleRule = async (source: string, index: number) => {
     if (!parsers) return;
     const srcCfg = parsers[source];
@@ -436,6 +446,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
                       <Space wrap>
                         <b>{src}</b>
                         {cfg.strip_syslog && <Tag>剥 syslog 头</Tag>}
+                        {missingRiskFields(src).map((m) => <Tag color="warning" key={m}>{m}</Tag>)}
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>{cfg.parsers?.length ?? 0} 条规则</Typography.Text>
                         <Button size="small" onClick={() => { setRuleDetail({ source: src, index: cfg.parsers?.length ?? 0, isNew: true }); setRuleDraft(JSON.stringify({ match: '', type: 'dissect', delimiter: '', fields: [], map: {} }, null, 2)); }}>加规则</Button>
                         <Button size="small" danger onClick={() => save(async () => {

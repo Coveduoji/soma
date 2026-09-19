@@ -37,7 +37,7 @@ def list_cases(status=None, verdict=None, severity=None, pending=False, query=No
                limit=50, offset=0) -> list[dict]:
     with SessionLocal() as s:
         conds = _case_filter(status, verdict, severity, pending, query)
-        q = select(Case).where(*conds).order_by(Case.strength.desc(), Case.id.desc()).limit(limit).offset(offset)
+        q = select(Case).where(*conds).order_by(Case.risk.desc(), Case.id.desc()).limit(limit).offset(offset)
         return [_case_row(c) for c in s.execute(q).scalars().all()]
 
 
@@ -94,7 +94,7 @@ def cases_for_entity(type_: str, value: str) -> list[dict]:
              .join(AlertArtifact, AlertArtifact.alert_id == Alert.id)
              .join(Artifact, Artifact.id == AlertArtifact.artifact_id)
              .where(Artifact.type == type_, Artifact.value == value)
-             .order_by(Case.strength.desc()))
+             .order_by(Case.risk.desc()))
         return [_case_row(c) for c in s.execute(q).scalars().all()]
 
 
@@ -251,6 +251,14 @@ def update_case_strength(case_id: int, strength: float) -> None:
         c = s.get(Case, case_id)
         if c:
             c.strength = strength
+            s.commit()
+
+
+def update_case_risk(case_id: int, risk: float) -> None:
+    with SessionLocal() as s:
+        c = s.get(Case, case_id)
+        if c:
+            c.risk = risk
             s.commit()
 
 

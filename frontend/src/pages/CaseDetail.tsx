@@ -156,7 +156,9 @@ export default function CaseDetail() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           <Typography.Text code>{c.correlation_uid}</Typography.Text>
         </Typography.Title>
-        <Typography.Text type="secondary">强度 {c.strength.toFixed(2)} · {alerts.length} 条告警</Typography.Text>
+        <Typography.Text type="secondary">
+          风险 {c.risk?.toFixed(2) ?? '—'} · 强度 {c.strength.toFixed(2)} · {alerts.length} 条告警
+        </Typography.Text>
       </div>
 
       <Card title="攻击链" size="small">

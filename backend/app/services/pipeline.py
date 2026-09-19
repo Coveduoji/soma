@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import threading
 import time
@@ -43,6 +44,26 @@ _ingest_lock = threading.Lock()
 _assets_cache: list[dict] | None = None
 _assets_cache_time = 0.0
 
+# 风险模型归一化：标准枚举 → 0-1 数值
+CRITICALITY_VAL = {"normal": 0.3, "important": 0.6, "critical": 1.0}
+ATTACK_RESULT_VAL = {"blocked": 0.0, "failed": 0.0, "success": 0.7, "compromised": 1.0}
+SEVERITY_VAL = {"low": 0.25, "medium": 0.5, "high": 0.75, "critical": 1.0}
+
+# 攻击结果 raw 兜底正则（来源没配解析规则时从原文猜）
+_ATTACK_RESULT_GUESS = [
+    (re.compile(r"已拦截|已阻断|已阻止|blocked|deny", re.IGNORECASE), "blocked"),
+    (re.compile(r"失陷|入侵成功|已沦陷|compromised", re.IGNORECASE), "compromised"),
+    (re.compile(r"成功|success", re.IGNORECASE), "success"),
+    (re.compile(r"失败|failed|attempt", re.IGNORECASE), "failed"),
+]
+
+
+def _guess_attack_result(raw: str) -> str | None:
+    for pat, val in _ATTACK_RESULT_GUESS:
+        if pat.search(raw or ""):
+            return val
+    return None
+
 
 def _get_assets() -> list[dict]:
     """读资产清单（进程内 TTL 缓存 10 秒；配置类数据低频改，改动最多 10 秒后生效）。"""
@@ -55,7 +76,7 @@ def _get_assets() -> list[dict]:
 
 
 def _enrich_signal(signal: dict) -> None:
-    """解析前置富化：实体兜底抽取 + 资产匹配标注。raw 原样保留，只增补 entities 的 role/criticality。"""
+    """解析前置富化：实体兜底抽取 + 资产匹配标注 + 风险分计算。raw 原样保留。"""
     if not signal.get("entities"):
         ents = artifact.extract_entities({"asset": signal.get("asset", ""), "raw": signal.get("raw", "")})
         signal["entities"] = [{"type": e.type, "value": e.value} for e in ents]
@@ -66,6 +87,35 @@ def _enrich_signal(signal: dict) -> None:
             if m:
                 ent["role"] = m["role"]
                 ent["criticality"] = m["criticality"]
+
+    # 攻击结果 raw 兜底（来源没配解析规则时，从原文猜）
+    if not signal.get("attack_result"):
+        guessed = _guess_attack_result(signal.get("raw", ""))
+        if guessed:
+            signal["attack_result"] = guessed
+
+    # 风险分 = 资产价值 × 攻击得逞 × 攻击类型危害；缺失维度用保守默认并标记 risk_incomplete
+    risk_incomplete = False
+    crit_vals = [CRITICALITY_VAL.get(ent.get("criticality", "normal"), 0.3)
+                 for ent in signal.get("entities", []) if ent.get("criticality")]
+    criticality_val = max(crit_vals) if crit_vals else 0.3  # 无内部资产按「普通」算
+
+    ar = signal.get("attack_result")
+    if ar in ATTACK_RESULT_VAL:
+        attack_val = ATTACK_RESULT_VAL[ar]
+    else:
+        attack_val = 1.0  # 保守：假设得逞
+        risk_incomplete = True
+
+    sv = signal.get("severity")
+    if sv in SEVERITY_VAL:
+        severity_val = SEVERITY_VAL[sv]
+    else:
+        severity_val = 0.5  # 中性：medium
+        risk_incomplete = True
+
+    signal["risk"] = round(criticality_val * attack_val * severity_val, 3)
+    signal["risk_incomplete"] = risk_incomplete
 
 
 def _within_budget(budget: int, window: int) -> bool:
@@ -116,12 +166,14 @@ def process(signals: list[dict], knob_name: str = "正常") -> dict:
 
     for sig in signals:
         total += 1
+        _enrich_signal(sig)  # 解析前置富化：实体 + 资产标注 + 风险分
         # 黑名单优先于白名单：宁可多报不可漏（签名若同时命中黑白名单，走秒拦而非静默）。
         if innate.match(sig, rules):
             innate_hits += 1
             events.append(blackboard.Event(
                 time=sig["time"], source=sig["source"], asset=sig["asset"], etype=sig["type"],
                 confidence=d["innate_conf"], raw=sig["raw"], reason="固有免疫秒拦：已知攻击家族", innate=True,
+                entities=sig.get("entities", []), risk=sig.get("risk", 0), risk_incomplete=sig.get("risk_incomplete", False),
             ))
             continue
         if tolerance.is_tolerated(sig, tol, ttl):
@@ -137,6 +189,7 @@ def process(signals: list[dict], knob_name: str = "正常") -> dict:
         events.append(blackboard.Event(
             time=sig["time"], source=sig["source"], asset=sig["asset"], etype=sig["type"],
             confidence=v.confidence, raw=sig["raw"], reason=v.reason,
+            entities=sig.get("entities", []), risk=sig.get("risk", 0), risk_incomplete=sig.get("risk_incomplete", False),
         ))
 
     # 建图 → 连通分量归案
@@ -157,8 +210,11 @@ def process(signals: list[dict], knob_name: str = "正常") -> dict:
         confs = [events[i].confidence for i in idxs]
         return max(confs) + min(d["chain_cap"], d["chain_bonus"] * (len(idxs) - 1))
 
-    ranked = sorted(comp_event_idxs.items(), key=lambda kv: strength(kv[1]), reverse=True)
-    escalated_cids = {cid for cid, idxs in ranked if strength(idxs) >= knob.escalate_above}
+    def risk(idxs: list[int]) -> float:
+        return max(events[i].risk for i in idxs)
+
+    escalated_cids = {cid for cid, idxs in comp_event_idxs.items()
+                      if risk(idxs) >= d.get("risk_threshold", 0.3)}
 
     # 落库
     case_summaries = []
@@ -170,6 +226,7 @@ def process(signals: list[dict], knob_name: str = "正常") -> dict:
             correlation_uid=uid, title=title, strength=round(strength(idxs), 3),
             entity_summary=json.dumps([{"type": e.type, "value": e.value} for e in ents], ensure_ascii=False),
         )
+        db.update_case_risk(case_id, round(risk(idxs), 3))
         for i in idxs:
             e = events[i]
             alert_id = db.insert_alert(case_id, e)
@@ -327,16 +384,18 @@ def process_signal(signal: dict, knob_name: str | None = None) -> dict:
         for ent in ents:
             db.link_alert_artifact(alert_id, db.get_or_create_artifact(ent.type, ent.value))
 
-        # 更新案件强度
+        # 更新案件强度 + 风险分（风险 = 案件所有告警风险的最大值）
         alerts = db.get_case_alerts(case_id)
         strength = max(a["confidence"] for a in alerts) + min(d["chain_cap"], d["chain_bonus"] * (len(alerts) - 1))
         db.update_case_strength(case_id, round(strength, 3))
+        case_risk = max(signal.get("risk", 0), db.get_case(case_id).get("risk", 0) or 0)
+        db.update_case_risk(case_id, round(case_risk, 3))
 
-    # 顶出决策：越过顶出线才考虑唤醒系统2，但要过两重门——
+    # 顶出决策：风险分越过风险阈值才考虑唤醒系统2，但要过两重门——
     #   ① 单信号门槛：单信号案件默认不醒（除非 conf >= 地板值），要等拼链或确凿单点 IOC；
     #   ② 预算门：滑动窗口内最多 knob.budget 个不同案件唤醒。
     # 被门拦下的也写审计——「抑制不是静默，全程可审计」。
-    if strength >= knob.escalate_above:
+    if case_risk >= d.get("risk_threshold", 0.3):
         max_conf = max(a["confidence"] for a in alerts)
         worthy = len(alerts) >= 2 or max_conf >= gating["single_signal_floor"]
         report_exists = db.get_case_report(case_id) is not None
@@ -353,14 +412,15 @@ def process_signal(signal: dict, knob_name: str | None = None) -> dict:
                 ).start()
             else:
                 db.insert_audit("budget_blocked", f"case {case_id}",
-                                json.dumps({"strength": round(strength, 3), "alerts": len(alerts),
+                                json.dumps({"risk": case_risk, "alerts": len(alerts),
                                             "budget": knob.budget}, ensure_ascii=False))
         elif not worthy:
             db.insert_audit("single_signal_skipped", f"case {case_id}",
                             json.dumps({"max_conf": max_conf, "alerts": len(alerts),
                                         "floor": gating["single_signal_floor"]}, ensure_ascii=False))
 
-    return {"status": "ingested", "case_id": case_id, "strength": round(strength, 3), "alerts": len(alerts)}
+    return {"status": "ingested", "case_id": case_id, "strength": round(strength, 3),
+            "risk": case_risk, "alerts": len(alerts)}
 
 
 def restore_signal(signal: dict) -> dict:

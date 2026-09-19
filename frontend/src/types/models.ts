@@ -19,6 +19,7 @@ export interface Case {
   status: string;
   verdict: string;
   severity: string;
+  risk?: number;
   entities: Entity[];
 }
 
@@ -198,6 +199,10 @@ export interface ParserRule {
     type?: string;
     asset?: string;
     entities?: [string, string][];
+    severity?: string;
+    severity_map?: Record<string, string>;
+    attack_result?: string;
+    attack_result_map?: Record<string, string>;
   };
 }
 
