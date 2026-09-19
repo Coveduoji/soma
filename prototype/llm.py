@@ -101,6 +101,7 @@ class OpenAICompatClient(ModelClient):
         payload: dict = {
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
+            "stream": False,  # 显式非流式：部分网关（Higress）默认流式，不带该字段会返回 SSE 导致 json() 解析失败
         }
         if self.temperature is not None:
             payload["temperature"] = self.temperature
