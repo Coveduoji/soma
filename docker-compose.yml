@@ -31,6 +31,15 @@ services:
       NEUROIMMUNE_MODEL: ${NEUROIMMUNE_MODEL:-}
       NEUROIMMUNE_DEEP_MODEL: ${NEUROIMMUNE_DEEP_MODEL:-}
       NEUROIMMUNE_LOG_LEVEL: ${NEUROIMMUNE_LOG_LEVEL:-INFO}
+      # 真模型直连：容器内 127.0.0.1:7890 是容器自身回环，够不到宿主代理；DeepSeek 国内直连即可
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "*"
+      no_proxy: "*"
     volumes:
       - neuroimmune-data:/data
     restart: unless-stopped
@@ -71,6 +80,7 @@ services:
       - ./deploy/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro,z
       - ${TIANYAN_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/tianyanlog}:/logs/tianyan:ro,z
       - ${WAF_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/waflog}:/logs/waf:ro,z
+      - ${HIDS_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/hidslog}:/logs/hids:ro,z
       - filebeat-data:/usr/share/filebeat/data   # registry offset 持久化
     depends_on:
       - kafka

@@ -23,6 +23,14 @@ filebeat.inputs:
       source: waf
     fields_under_root: false
 
+  - type: log
+    enabled: true
+    paths:
+      - /logs/hids/*.log
+    fields:
+      source: hids
+    fields_under_root: false
+
 output.kafka:
   hosts: ["kafka:9092"]
   topic: neuroimmune-logs

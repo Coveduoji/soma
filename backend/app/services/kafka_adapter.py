@@ -14,7 +14,7 @@ import parsers  # prototype/parsers.py
 import syslog as syslog_parser  # prototype/syslog.py（经 app/__init__.py 的 sys.path shim）
 
 # Filebeat fields.source（英文）→ 中文来源名（对应 syslog_parsers.json 的键）
-SOURCE_MAP = {"tianyan": "天眼", "waf": "WAF"}
+SOURCE_MAP = {"tianyan": "天眼", "waf": "WAF", "hids": "HIDS"}
 
 
 def _parse_configured_with_source(message: str, src_name: str) -> dict | None:

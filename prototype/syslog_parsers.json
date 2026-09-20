@@ -292,5 +292,43 @@
         "enabled": true
       }
     ]
+  },
+  "HIDS": {
+    "parsers": [
+      {
+        "type": "kv",
+        "field_split": "&",
+        "value_split": "=",
+        "strip_prefix": "bracket_kv",
+        "map": {
+          "time": "_timestamp",
+          "type": "alert_type",
+          "asset": "dst_ip",
+          "entities": [
+            [
+              "src_ip",
+              "ip"
+            ],
+            [
+              "dst_ip",
+              "ip"
+            ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          },
+          "attack_result": "attacker_succ",
+          "attack_result_map": {
+            "true": "compromised",
+            "false": "failed"
+          }
+        },
+        "enabled": true
+      }
+    ]
   }
 }
