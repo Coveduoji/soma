@@ -64,6 +64,18 @@ services:
       - "9092:9092"
     restart: unless-stopped
 
+  filebeat:
+    image: elastic/filebeat:8.15.0
+    user: root   # 读日志文件需要权限
+    volumes:
+      - ./deploy/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ${TIANYAN_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/tianyanlog}:/logs/tianyan:ro
+      - ${WAF_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/waflog}:/logs/waf:ro
+      - filebeat-data:/usr/share/filebeat/data   # registry offset 持久化
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
   nginx:
     image: neuroimmune-nginx:latest
     build:
@@ -79,3 +91,4 @@ services:
 
 volumes:
   neuroimmune-data:
+  filebeat-data:
