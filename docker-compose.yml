@@ -66,11 +66,11 @@ services:
 
   filebeat:
     image: elastic/filebeat:8.15.0
-    user: root   # 读日志文件需要权限
+    # 默认用户 uid=1000，与宿主日志文件/配置文件的属主一致（避免 SELinux/权限问题）
     volumes:
-      - ./deploy/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - ${TIANYAN_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/tianyanlog}:/logs/tianyan:ro
-      - ${WAF_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/waflog}:/logs/waf:ro
+      - ./deploy/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro,z
+      - ${TIANYAN_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/tianyanlog}:/logs/tianyan:ro,z
+      - ${WAF_LOG_DIR:-/wls/applogs/rtlog/sec-terminal-linux/waflog}:/logs/waf:ro,z
       - filebeat-data:/usr/share/filebeat/data   # registry offset 持久化
     depends_on:
       - kafka
