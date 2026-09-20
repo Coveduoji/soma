@@ -32,6 +32,8 @@ docker save neuroimmune-backend:latest neuroimmune-nginx:latest apache/kafka:3.9
 echo "=== 4/5 拷贝部署文件 ==="
 cp docker-compose.yml "$OUT_DIR/"
 cp .env.example "$OUT_DIR/"
+mkdir -p "$OUT_DIR/deploy"
+cp deploy/filebeat.yml "$OUT_DIR/deploy/"
 cp scripts/backup.sh scripts/restore.sh "$OUT_DIR/"
 
 echo "=== 5/5 完成 ==="

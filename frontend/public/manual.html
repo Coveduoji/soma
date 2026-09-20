@@ -1,3 +1,7 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
 <title>神经免疫用户手册</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -261,7 +265,9 @@
 
   .faq .q { font-weight: 600; color: var(--ink); }
 </style>
+</head>
 
+<body>
 <div class="masthead">
   <div class="masthead-inner">
     <p class="eyebrow">SOC 告警降噪与研判工作台</p>
@@ -325,7 +331,9 @@ cd frontend &amp;&amp; npm install &amp;&amp; npm run dev          # 前端（�
 docker compose up -d --build</code></pre>
       <ul>
         <li>nginx 托管前端静态 + 反代 <code>/api</code>（默认 80 端口，HTTPS 见 <code>nginx.conf</code>）。</li>
-        <li>数据持久化在命名卷 <code>neuroimmune-data</code>；备份/恢复 <code>./scripts/backup.sh</code> / <code>./scripts/restore.sh</code>。</li>
+        <li>数据持久化在命名卷 <code>neuroimmune-data</code>。</li>
+        <li>内置 <code>kafka</code> + <code>filebeat</code> 服务：Filebeat 采集本机日志目录 → Kafka → 后端消费（见「五、数据接入 → Filebeat」）。</li>
+        <li>备份/恢复 <code>./scripts/backup.sh</code> / <code>./scripts/restore.sh</code>。</li>
         <li><strong>安全底线</strong>：未设管理员凭据时拒绝启动；<code>/api/ingest</code> 未配 token 时拒绝接入；syslog 默认只绑 <code>127.0.0.1</code>。</li>
       </ul>
       <h3>纯内网离线部署</h3>
@@ -347,6 +355,7 @@ docker compose up -d --build</code></pre>
         <tr><td class="n">免疫耐受 Tolerance</td><td>白名单</td><td>已知好签名 → 降级（静默但不丢弃）</td></tr>
         <tr><td class="n">签名 Signature</td><td>告警形状</td><td>掩码 IP/hash/数字，提取稳定的告警模板</td></tr>
         <tr><td class="n">神经调质 Knob</td><td>风险等级</td><td>风险预设，映射到抑制线/顶出线/预算</td></tr>
+        <tr><td class="n">风险分 Risk</td><td>风险评分</td><td>资产价值 × 攻击得逞 × 危害，替代置信度排序决定顶出</td></tr>
         <tr><td class="n">睡眠巩固 Consolidate</td><td>夜间记忆固化</td><td>定期蒸馏当日案件为可检索记忆</td></tr>
       </table></div>
 
@@ -363,8 +372,9 @@ docker compose up -d --build</code></pre>
 
       <h3>关键概念详解</h3>
       <p><strong>签名 Signature</strong>：把一条告警的「形状」抽成稳定模板——掩码掉会变的 token（IP/哈希/独立数字/UUID），保留语义 token（主机名/账号/描述词）。<code>svc_backup 登录跳板机</code> 和 <code>svc_backup 登录数据库</code> 是不同签名；<code>资产A 的端口扫描</code> 和 <code>资产B 的端口扫描</code> 也是不同签名（asset 不掩码）。</p>
-      <p><strong>案件强度</strong>：<code>max(各告警置信度) + min(链路加成上限, 链路加成 × (告警数-1))</code>。告警越多、置信度越高，案件强度越高。</p>
-      <p><strong>顶出 Escalate</strong>：案件强度 ≥ 顶出线 → 唤醒系统2 深度研判。</p>
+      <p><strong>案件强度</strong>：<code>max(各告警置信度) + min(链路加成上限, 链路加成 × (告警数-1))</code>。告警越多、置信度越高，案件强度越高（用于展示排序）。</p>
+      <p><strong>风险分 Risk</strong>：<code>资产价值 × 攻击得逞 × 危害</code>，三维度归一化到 0-1。资产价值来自「内部资产清单」匹配（普通 0.3 / 重要 0.6 / 核心 1.0，未匹配默认 0.3）；攻击得逞（阻断/失败 0 / 成功 0.7 / 失陷 1.0，缺失保守取 1.0）；危害（低 0.25 / 中 0.5 / 高 0.75 / 危急 1.0，缺失取 0.5）。缺失维度标记 <code>risk_incomplete</code>。</p>
+      <p><strong>顶出 Escalate</strong>：案件风险分 ≥ 风险阈值（默认 0.3）→ 唤醒系统2 深度研判。<strong>风险分替代旧版置信度排序</strong>决定顶出优先级。</p>
     </section>
 
     <section id="pages">
@@ -484,13 +494,14 @@ docker compose up -d --build</code></pre>
 
     <section id="ingest">
       <h2><span class="no">五</span>数据接入</h2>
-      <p>平台支持<strong>多通道 + 多来源</strong>接入，四条通道汇聚到同一条处理流水线。</p>
+      <p>平台支持<strong>多通道 + 多来源</strong>接入，五条通道汇聚到同一条处理流水线。</p>
       <div class="tablewrap"><table>
         <tr><th>通道</th><th>入口</th><th>鉴权</th><th>用途</th></tr>
         <tr><td class="n">syslog 接收</td><td>UDP/TCP <code>:5514</code></td><td>无（靠 bind）</td><td>实时流式</td></tr>
         <tr><td class="n">HTTP JSON API</td><td><code>POST /api/ingest</code></td><td><code>X-API-Token</code></td><td>机器/脚本流式</td></tr>
         <tr><td class="n">文件上传</td><td>设置 → 数据接入</td><td>用户 JWT</td><td>JSONL/JSON/CSV 批量</td></tr>
         <tr><td class="n">CLI 批量</td><td><code>python3 ingest.py</code></td><td>本地</td><td>离线全量（重置库）</td></tr>
+        <tr><td class="n">Filebeat 文件日志</td><td>本机日志文件 → Kafka</td><td>无（内部通道）</td><td>文件尾部采集流式</td></tr>
       </table></div>
 
       <h3>syslog 接收</h3>
@@ -529,6 +540,15 @@ docker compose up -d --build</code></pre>
         <li>确认后「保存解析配置」。</li>
         <li>之后该来源的日志按规则确定性解析、精确实体拼链；可点规则条目查看/编辑/启停/删除完整 JSON。</li>
       </ol>
+
+      <h3>Filebeat 文件日志采集（Kafka 中转）</h3>
+      <p>安全设备把日志写到本机文件，Filebeat 尾部采集 → Kafka → 后端消费，与其它通道走同一条流水线。</p>
+      <ul>
+        <li>文件命名约定：<code>&lt;类型&gt;-YYYY-MM-DD-HH.log</code>（如 <code>ips-2026-09-20-18.log</code>、<code>webids-…</code>、<code>waf-…</code>、<code>hids-…</code>）。</li>
+        <li>来源识别靠 Filebeat 的 <code>fields.source</code>（<code>tianyan / waf / hids</code>）映射到「天眼 / WAF / HIDS」，再走对应解析规则。</li>
+        <li>日志目录挂载：<code>docker-compose.yml</code> 里 <code>TIANYAN_LOG_DIR / WAF_LOG_DIR / HIDS_LOG_DIR</code>，改路径在 <code>.env</code> 设这三个变量。</li>
+        <li>Kafka 连接：<code>NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS</code>（默认 <code>kafka:9092</code>）、<code>NEUROIMMUNE_KAFKA_TOPIC</code>（默认 <code>neuroimmune-logs</code>）。</li>
+      </ul>
     </section>
 
     <section id="config">
@@ -590,6 +610,28 @@ docker compose up -d --build</code></pre>
         <tr><td class="n"><code>mock_no_hit / base / ceiling / cutoff</code></td><td>mock 未命中分 / 基础分 / 上限 / 判定线</td><td class="n">0.15 / 0.32 / 0.72 / 0.50</td></tr>
       </table></div>
       <p>Mock 模式（没配 key）杏仁核用「关键词权重」规则打分：命中关键词累加权重（封顶 ceiling），置信度 ≥ cutoff 判可疑。</p>
+
+      <h3>风险模型（风险分）</h3>
+      <p>案件是否顶出由「风险分」决定（替代旧版按置信度排序）。风险分 = 资产价值 × 攻击得逞 × 危害：</p>
+      <div class="tablewrap"><table>
+        <tr><th>字段</th><th>说明</th><th>默认</th></tr>
+        <tr><td class="n"><code>risk_threshold</code></td><td>案件风险分 ≥ 此值才考虑顶出</td><td class="n">0.30</td></tr>
+      </table></div>
+      <ul>
+        <li><strong>资产价值 criticality</strong>：普通 0.3 / 重要 0.6 / 核心 1.0，来自「内部资产清单」匹配，未匹配默认 0.3</li>
+        <li><strong>攻击得逞 attack_result</strong>：阻断/失败 0.0 / 成功 0.7 / 失陷 1.0，缺失保守取 1.0（标 <code>risk_incomplete</code>）</li>
+        <li><strong>危害 severity</strong>：低 0.25 / 中 0.5 / 高 0.75 / 危急 1.0，缺失取 0.5（标 <code>risk_incomplete</code>）</li>
+      </ul>
+
+      <h3>内部资产清单</h3>
+      <p>「高级设置 → 资产清单」，配置「我们自己的资产」：角色 + IP/CIDR/域名 + 敏感度。命中资产的 IP/域名会在研判时标注 criticality 用于风险分；角色为「出口IP」的实体命中会触发出口IP降噪（置信度 ×0.85，内部出网温和降噪）。</p>
+      <div class="tablewrap"><table>
+        <tr><th>字段</th><th>说明</th></tr>
+        <tr><td class="n"><code>value</code></td><td>IP / CIDR 网段 / 域名（IP 最长前缀优先匹配）</td></tr>
+        <tr><td class="n"><code>role</code></td><td>角色标签（如「出口IP」「内网网段」「生产网段」）</td></tr>
+        <tr><td class="n"><code>criticality</code></td><td>敏感度：normal / important / critical</td></tr>
+      </table></div>
+      <p>支持「批量导入」：每行 <code>值 角色</code>，如 <code>1.2.3.4 出口IP</code>、<code>10.0.0.0/8 内网网段</code>。</p>
 
       <h3>数据接入（syslog）</h3>
       <div class="tablewrap"><table>
@@ -664,3 +706,6 @@ docker compose up -d --build</code></pre>
 
   </main>
 </div>
+
+</body>
+</html>
