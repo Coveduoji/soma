@@ -208,6 +208,13 @@ def set_ingest_config(cfg: dict) -> dict:
     return merged
 
 
+def _mock_fingerprint() -> tuple:
+    """mock 规则指纹：参数变化才重建客户端（Web 设置页调 mock 规则后热生效）。"""
+    d = get_detection_config()
+    return (tuple(tuple(x) for x in d["mock_indicators"]),
+            d["mock_no_hit"], d["mock_base"], d["mock_ceiling"], d["mock_cutoff"])
+
+
 def _mock_client() -> llm.MockClient:
     d = get_detection_config()
     return llm.MockClient(
@@ -228,8 +235,9 @@ def get_client():
     mode = get_model_mode()
     m = get_model_config()
     api_key = m.get("api_key") or os.environ.get("NEUROIMMUNE_API_KEY", "").strip()
+    mock_fp = _mock_fingerprint()
     key = (mode, api_key, m.get("base_url"), m.get("model"),
-           m.get("temperature"), m.get("timeout"))
+           m.get("temperature"), m.get("timeout"), mock_fp)
     if _client_cache is not None and _client_cache_key == key:
         return _client_cache
     if mode == "mock" or not api_key:
@@ -258,7 +266,8 @@ def get_deep_client():
     api_key = (m.get("deep_api_key") or m.get("api_key")
                or os.environ.get("NEUROIMMUNE_DEEP_API_KEY", "").strip()
                or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
-    key = (mode, api_key, m.get("deep_base_url"), m.get("deep_model"), m.get("timeout"))
+    mock_fp = _mock_fingerprint()
+    key = (mode, api_key, m.get("deep_base_url"), m.get("deep_model"), m.get("timeout"), mock_fp)
     if _deep_client_cache is not None and _deep_client_cache_key == key:
         return _deep_client_cache
     if mode == "mock" or not api_key:
@@ -296,7 +305,7 @@ def set_gating_config(single_signal_floor: float, budget_window: int) -> None:
 # ---- syslog 来源映射 ----
 # 统一持久化到数据目录（Docker 下在 /data 卷，重启不丢）；prototype 独立跑时仍读
 # prototype/syslog_sources.json 作为默认种子。
-_PROTO_SOURCES_PATH = Path(__file__).resolve().parent.parent.parent / "prototype" / "syslog_sources.json"
+_PROTO_SOURCES_PATH = Path(__file__).resolve().parent.parent.parent.parent / "prototype" / "syslog_sources.json"
 SOURCES_PATH = data_dir() / "syslog_sources.json"
 
 
@@ -316,7 +325,7 @@ def set_sources_config(cfg: dict) -> dict:
 
 # ---- syslog 解析配置（方案 C：来源 → parser 规则，LLM 生成 + 人工确认后落盘）----
 # 统一持久化到数据目录；prototype/syslog_parsers.json 作为默认种子（内置天眼/WAF 等规则）。
-_PROTO_PARSERS_PATH = Path(__file__).resolve().parent.parent.parent / "prototype" / "syslog_parsers.json"
+_PROTO_PARSERS_PATH = Path(__file__).resolve().parent.parent.parent.parent / "prototype" / "syslog_parsers.json"
 PARSERS_PATH = data_dir() / "syslog_parsers.json"
 
 
