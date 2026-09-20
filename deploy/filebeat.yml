@@ -1,0 +1,42 @@
+# Filebeat 配置：采集安全设备文件日志 → 发到神经免疫的 Kafka
+#
+# 部署（在日志服务器上）：
+#   1. 安装 Filebeat（官方 tar.gz 或 rpm/deb，Elastic 官方源）
+#   2. 把本文件放到 filebeat 安装目录，替换下方 <kafka地址> 为神经免疫 Kafka 的地址
+#   3. 启动：./filebeat -e -c filebeat.yml
+#
+# 说明：
+#   - 两个 input 分别监听天眼(tianyanlog)、WAF(waflog) 日志目录，tail 追加内容；
+#   - fields.source 标识来源，消费端据此映射到「天眼」/「WAF」并走对应解析规则；
+#   - Filebeat 原生处理 offset 持久化(registry) / logrotate 轮转感知 / 文件删除容忍。
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /wls/applogs/rtlog/sec-terminal-linux/tianyanlog/*.log
+    fields:
+      source: tianyan
+    fields_under_root: false
+    # 每条日志一行，无需 multiline
+
+  - type: log
+    enabled: true
+    paths:
+      - /wls/applogs/rtlog/sec-terminal-linux/waflog/*.log
+    fields:
+      source: waf
+    fields_under_root: false
+
+output.kafka:
+  hosts: ["<kafka地址>:9092"]
+  topic: neuroimmune-logs
+  required_acks: 1
+  compression: gzip
+  max_message_bytes: 1000000
+
+# 只发必要字段，减小消息体积（消费端只需 message + fields.source）
+processors:
+  - drop_fields:
+      fields: ["agent", "ecs", "host", "input", "log.offset"]
+      ignore_missing: true

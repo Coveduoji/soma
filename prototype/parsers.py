@@ -90,6 +90,17 @@ def _match_rule(rule: dict, body: str) -> bool:
     return True  # 无 match 或未知类型：兜底规则（放在 parsers 列表最后）
 
 
+_BRACKET_KV_HEAD = re.compile(r"^(\S+)\s+\[[^\]]*\]\s+\[device\]\s*\[(.*)\]$")
+
+
+def strip_bracket_kv(line: str) -> tuple[str, str] | None:
+    """剥「时间戳 [级别] [device] [」前缀和「]」后缀，返回 (时间戳, kv 正文)。"""
+    m = _BRACKET_KV_HEAD.match((line or "").strip())
+    if not m:
+        return None
+    return m.group(1), m.group(2)
+
+
 def _normalize(value, mapping: dict | None):
     """取值归一化：value 经 mapping 映射到标准枚举；未命中返回 None（视为缺失）。"""
     if value is None:
@@ -117,11 +128,21 @@ def parse_configured(body: str, raw: str, src_name: str, cfg: dict) -> dict | No
             continue
         if not _match_rule(rule, body):
             continue
+
+        # 剥前缀：`时间戳 [级别] [device] [ ... ]` → 时间戳 + kv 正文
+        timestamp = ""
+        parse_body = body
+        if rule.get("strip_prefix") == "bracket_kv":
+            parsed = strip_bracket_kv(body)
+            if parsed is None:
+                continue  # 格式不匹配，跳过该规则
+            timestamp, parse_body = parsed
+
         rtype = rule.get("type", "")
         if rtype == "dissect":
-            fields = parse_dissect(body, rule.get("delimiter", ""), rule.get("fields", []))
+            fields = parse_dissect(parse_body, rule.get("delimiter", ""), rule.get("fields", []))
         elif rtype == "kv":
-            fields = parse_kv(body, rule.get("field_split", ""), rule.get("value_split", ""))
+            fields = parse_kv(parse_body, rule.get("field_split", ""), rule.get("value_split", ""))
         else:
             continue
 
@@ -132,8 +153,12 @@ def parse_configured(body: str, raw: str, src_name: str, cfg: dict) -> dict | No
             if val:
                 entities.append({"type": etype, "value": val})
 
+        # time 字段：map 的 time 指向 "_timestamp" 时用剥前缀得到的时间戳
+        time_field = mp.get("time", "")
+        time_val = timestamp if time_field == "_timestamp" else fields.get(time_field)
+
         result = {
-            "time": normalize_time(fields.get(mp.get("time", ""))),
+            "time": normalize_time(time_val),
             "source": src_name,
             "asset": fields.get(mp.get("asset", ""), "").strip(),
             "type": fields.get(mp.get("type", ""), "").strip() or rtype,

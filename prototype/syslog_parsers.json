@@ -177,6 +177,40 @@
             "8": "critical"
           }
         }
+      },
+      {
+        "type": "kv",
+        "field_split": "&",
+        "value_split": "=",
+        "strip_prefix": "bracket_kv",
+        "map": {
+          "time": "_timestamp",
+          "type": "alert_type",
+          "asset": "dst_ip",
+          "entities": [
+            [
+              "src_ip",
+              "ip"
+            ],
+            [
+              "dst_ip",
+              "ip"
+            ]
+          ],
+          "severity": "severity",
+          "severity_map": {
+            "2": "low",
+            "4": "medium",
+            "6": "high",
+            "8": "critical"
+          },
+          "attack_result": "attacker_succ",
+          "attack_result_map": {
+            "true": "compromised",
+            "false": "failed"
+          }
+        },
+        "enabled": true
       }
     ]
   },
@@ -221,6 +255,41 @@
             "Pass": "success"
           }
         }
+      },
+      {
+        "type": "kv",
+        "field_split": "&",
+        "value_split": "=",
+        "strip_prefix": "bracket_kv",
+        "map": {
+          "time": "_timestamp",
+          "type": "event",
+          "asset": "dst_ip",
+          "entities": [
+            [
+              "src_ip",
+              "ip"
+            ],
+            [
+              "dst_ip",
+              "ip"
+            ]
+          ],
+          "severity": "threat_level",
+          "severity_map": {
+            "低风险": "low",
+            "中风险": "medium",
+            "高风险": "high",
+            "危急": "critical"
+          },
+          "attack_result": "action",
+          "attack_result_map": {
+            "blocked": "blocked",
+            "allow": "success",
+            "pass": "success"
+          }
+        },
+        "enabled": true
       }
     ]
   }
