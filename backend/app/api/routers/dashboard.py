@@ -13,6 +13,7 @@ from app.core import deps
 import config
 from app import crud as db
 import innate
+import llm
 from app.services import pipeline
 from app.services import report
 import signals
@@ -326,6 +327,40 @@ def set_model(body: dict):
             m[k] = body[k]
     m = state.set_model_config(m)
     return {**m, "api_key": _mask(m["api_key"]), "deep_api_key": _mask(m["deep_api_key"])}
+
+
+@router.post("/model/test", dependencies=[Depends(deps.require_perm("config"))])
+def test_model(body: dict):
+    """测试模型连通性：用前端表单当前值发一条最小请求（key 掩码/空则回退已保存值）。"""
+    saved = state.get_model_config()
+    target = body.get("target", "system1")
+
+    def eff(new_val, saved_field, env_name, default):
+        return new_val or saved.get(saved_field) or os.environ.get(env_name, "").strip() or default
+
+    def eff_key(new_key, saved_field):
+        if new_key and not str(new_key).startswith("••••"):
+            return new_key
+        return saved.get(saved_field, "")
+
+    if target == "system2":
+        api_key = (eff_key(body.get("deep_api_key"), "deep_api_key")
+                   or saved.get("api_key")
+                   or os.environ.get("NEUROIMMUNE_DEEP_API_KEY", "").strip()
+                   or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
+        base_url = (eff(body.get("deep_base_url"), "deep_base_url", "NEUROIMMUNE_DEEP_BASE_URL", "")
+                    or eff(body.get("base_url"), "base_url", "NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1"))
+        model = eff(body.get("deep_model"), "deep_model", "NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner")
+    else:
+        api_key = (eff_key(body.get("api_key"), "api_key")
+                   or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
+        base_url = eff(body.get("base_url"), "base_url", "NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1")
+        model = eff(body.get("model"), "model", "NEUROIMMUNE_MODEL", "deepseek-chat")
+
+    if not api_key:
+        return {"ok": False, "error": "未配置 API key（mock 模式无需测试）", "elapsed": 0}
+
+    return llm.test_connection(base_url, api_key, model)
 
 
 @router.get("/detection")

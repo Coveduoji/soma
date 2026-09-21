@@ -50,6 +50,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
   const [freq, setFreq] = useState<FreqConfig | null>(null);
   const [gating, setGating] = useState<GatingConfig | null>(null);
   const [model, setModel] = useState<ModelConfig | null>(null);
+  const [testingModel, setTestingModel] = useState<'system1' | 'system2' | null>(null);
   const [detection, setDetection] = useState<DetectionConfig | null>(null);
   const [ingest, setIngest] = useState<IngestConfig | null>(null);
   const [sources, setSources] = useState<SourcesConfig | null>(null);
@@ -99,6 +100,21 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
       load();
     } catch (e) {
       message.error(errMsg(e));
+    }
+  };
+
+  const testModel = async (target: 'system1' | 'system2') => {
+    if (!model) return;
+    setTestingModel(target);
+    try {
+      const r = await configApi.testModel({ ...model, target });
+      const label = target === 'system1' ? '系统1' : '系统2';
+      if (r.ok) message.success(`${label} 连接正常（${r.elapsed}s）`);
+      else message.error(`${label} 测试失败：${r.error}`);
+    } catch (e) {
+      message.error(errMsg(e));
+    } finally {
+      setTestingModel(null);
     }
   };
 
@@ -295,6 +311,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
               <Input addonBefore="API key" placeholder="••••（未改则不覆盖）" value={model.api_key} onChange={(e) => setModel({ ...model, api_key: e.target.value })} />
               <Input addonBefore="base URL" value={model.base_url} onChange={(e) => setModel({ ...model, base_url: e.target.value })} />
               <Input addonBefore="模型名" value={model.model} onChange={(e) => setModel({ ...model, model: e.target.value })} />
+              <Button loading={testingModel === 'system1'} onClick={() => testModel('system1')}>测试</Button>
             </Space>
           </div>
           <div>
@@ -303,6 +320,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
               <Input addonBefore="API key" placeholder="••••（未改则不覆盖）" value={model.deep_api_key} onChange={(e) => setModel({ ...model, deep_api_key: e.target.value })} />
               <Input addonBefore="base URL" placeholder="空 = 回退杏仁核" value={model.deep_base_url} onChange={(e) => setModel({ ...model, deep_base_url: e.target.value })} />
               <Input addonBefore="模型名" value={model.deep_model} onChange={(e) => setModel({ ...model, deep_model: e.target.value })} />
+              <Button loading={testingModel === 'system2'} onClick={() => testModel('system2')}>测试</Button>
             </Space>
           </div>
           <Space wrap>

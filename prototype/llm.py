@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 
 import httpx
 
@@ -124,6 +125,20 @@ class OpenAICompatClient(ModelClient):
 
     def analyze(self, prompt: str) -> str:
         return self._post(prompt)
+
+
+def test_connection(base_url: str, api_key: str, model: str, timeout: float = 30.0) -> dict:
+    """测试 OpenAI 兼容端点的连通性：发一条最小请求，返回 {ok, error, elapsed}。
+
+    不抛异常——把 DNS/连接/鉴权/模型名等所有错误都兜成 error 返回，供「模型接入」页的测试按钮用。
+    """
+    client = OpenAICompatClient(base_url, api_key, model, timeout=timeout)
+    t0 = time.time()
+    try:
+        client._post("ping")
+        return {"ok": True, "error": "", "elapsed": round(time.time() - t0, 2)}
+    except Exception as e:  # noqa: BLE001 —— 测试要把所有错误兜住返回
+        return {"ok": False, "error": f"{type(e).__name__}: {e}", "elapsed": round(time.time() - t0, 2)}
 
 
 # 可疑关键词 -> 权重。mock 版杏仁核的「规则初筛」

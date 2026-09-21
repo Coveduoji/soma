@@ -17,6 +17,8 @@ export const configApi = {
   setMode: async (mode: string) => (await http.put<{ mode: string }>('/mode', { mode })).data,
   model: async () => (await http.get<ModelConfig>('/model')).data,
   setModel: async (body: object) => (await http.put<ModelConfig>('/model', body)).data,
+  testModel: async (body: object) =>
+    (await http.post<{ ok: boolean; error: string; elapsed: number }>('/model/test', body)).data,
   detection: async () => (await http.get<DetectionConfig>('/detection')).data,
   setDetection: async (body: object) => (await http.put<DetectionConfig>('/detection', body)).data,
   ingest: async () => (await http.get<IngestConfig>('/ingest')).data,
