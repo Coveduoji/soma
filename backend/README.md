@@ -122,8 +122,7 @@ cd backend && uvicorn app:app --port 8000
 # 终端 2：前端
 cd frontend && npm run dev
 
-# 终端 3：灌点数据（内置样例，复刻供应链投毒链）
-cd backend && python3 ingest.py ../prototype/data/sample.jsonl
+# 终端 3：数据接入——经 syslog（:5514）/ HTTP `/api/ingest` / Filebeat→Kafka 三通道（批量 CLI 已移除）
 ```
 
 然后浏览器开 `http://localhost:5173`：看板有降噪漏斗，分诊队列有顶出案件，海马体能看到实体共现关系。点案件详情可「标记误报 / 真阳性」，规则回写进免疫耐受 / 固有免疫，下一轮自动生效（越用越准）。

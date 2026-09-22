@@ -35,15 +35,11 @@
 
 ## 待办（`prototype/ROADMAP.md` 四）
 
-- 批量 `process()` 对齐（CLI 批处理还缺 budget + 单信号门槛）。
-- 案件实体图链式视图（可选）。
-- 前端 token 输入 UI（可选）。
+- 案件实体图链式视图（可选）：案件详情改成按攻击阶段时序的 kill-chain 视图。
 - 免疫签名相似度匹配（可选进阶：Jaccard/SimHash/embedding）。
 - 免疫签名掩码粒度可配。
-- **细粒度权限**：admin 可按用户配置权限（当前只有 admin/user 两级硬编码；见「权限方案」）。
 
 ## 暂缓（`prototype/ROADMAP.md` 三）
 
 - 置信度校准（命门，上线前必做）。
 - 多租户共享情报 / 向量记忆。
-- 常驻部署（systemd / 容器）。
