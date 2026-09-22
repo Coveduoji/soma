@@ -13,7 +13,7 @@ from app.models import User, Case, Alert, Artifact, AlertArtifact, Report, Audit
 from app.crud import _alert_row, _case_row
 
 
-def _case_filter(status=None, verdict=None, severity=None, pending=False, query=None):
+def _case_filter(status=None, verdict=None, severity=None, pending=False, query=None, risk=None):
     conds = []
     if status:
         conds.append(Case.status == status)
@@ -23,6 +23,13 @@ def _case_filter(status=None, verdict=None, severity=None, pending=False, query=
         conds.append(Case.verdict == verdict)
     if severity:
         conds.append(Case.severity == severity)
+    if risk == "high":
+        conds.append(Case.risk >= 0.3)
+    elif risk == "mid":
+        conds.append(Case.risk >= 0.1)
+        conds.append(Case.risk < 0.3)
+    elif risk == "low":
+        conds.append(Case.risk < 0.1)
     if query:
         like = f"%{query}%"
         conds.append(or_(
@@ -34,16 +41,16 @@ def _case_filter(status=None, verdict=None, severity=None, pending=False, query=
 
 
 def list_cases(status=None, verdict=None, severity=None, pending=False, query=None,
-               limit=50, offset=0) -> list[dict]:
+               risk=None, limit=50, offset=0) -> list[dict]:
     with SessionLocal() as s:
-        conds = _case_filter(status, verdict, severity, pending, query)
+        conds = _case_filter(status, verdict, severity, pending, query, risk)
         q = select(Case).where(*conds).order_by(Case.risk.desc(), Case.id.desc()).limit(limit).offset(offset)
         return [_case_row(c) for c in s.execute(q).scalars().all()]
 
 
-def count_cases(status=None, verdict=None, severity=None, pending=False, query=None) -> int:
+def count_cases(status=None, verdict=None, severity=None, pending=False, query=None, risk=None) -> int:
     with SessionLocal() as s:
-        conds = _case_filter(status, verdict, severity, pending, query)
+        conds = _case_filter(status, verdict, severity, pending, query, risk)
         q = select(func.count()).select_from(Case).where(*conds)
         return s.execute(q).scalar_one()
 

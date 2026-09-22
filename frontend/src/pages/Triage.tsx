@@ -24,6 +24,7 @@ export default function Triage() {
   const { message, modal } = App.useApp();
   const [status, setStatus] = useState('');
   const [verdict, setVerdict] = useState('');
+  const [risk, setRisk] = useState('');
   const [pending, setPending] = useState(true);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
@@ -33,6 +34,7 @@ export default function Triage() {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
   if (verdict) params.set('verdict', verdict);
+  if (risk) params.set('risk', risk);
   if (pending) params.set('pending', '1');
   if (q.trim()) params.set('q', q.trim());
   params.set('limit', String(PAGE_SIZE));
@@ -40,7 +42,7 @@ export default function Triage() {
   const queryStr = params.toString();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cases', status, verdict, pending, q, page],
+    queryKey: ['cases', status, verdict, pending, q, risk, page],
     queryFn: () => casesApi.listCases(queryStr),
     refetchInterval: 15000,
   });
@@ -101,6 +103,15 @@ export default function Triage() {
           <Checkbox checked={pending} onChange={(e) => { setPending(e.target.checked); setPage(0); }}>
             只看待处理
           </Checkbox>
+          <Select
+            value={risk || undefined} placeholder="全部风险" style={{ width: 150 }} allowClear
+            onChange={(v) => { setRisk(v || ''); setPage(0); }}
+            options={[
+              { value: 'high', label: '高风险 ≥0.3' },
+              { value: 'mid', label: '中风险 0.1~0.3' },
+              { value: 'low', label: '低风险 <0.1' },
+            ]}
+          />
           <Select
             value={status || undefined} placeholder="全部状态" style={{ width: 130 }} allowClear
             onChange={(v) => { setStatus(v || ''); setPage(0); }}

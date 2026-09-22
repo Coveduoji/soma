@@ -19,10 +19,11 @@ router = APIRouter(prefix="/api/cases", tags=["cases"], dependencies=[Depends(de
 
 @router.get("")
 def list_cases(status: str | None = None, verdict: str | None = None, severity: str | None = None,
-               pending: bool = False, q: str | None = None, limit: int = 50, offset: int = 0):
+               pending: bool = False, q: str | None = None, risk: str | None = None,
+               limit: int = 50, offset: int = 0):
     return {
-        "items": db.list_cases(status, verdict, severity, pending, q, limit, offset),
-        "total": db.count_cases(status, verdict, severity, pending, q),
+        "items": db.list_cases(status, verdict, severity, pending, q, risk, limit, offset),
+        "total": db.count_cases(status, verdict, severity, pending, q, risk),
     }
 
 
