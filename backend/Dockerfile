@@ -6,6 +6,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# 中文字体（报告图表 matplotlib 用，否则中文标签乱码）
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
 # 先装依赖，利用 Docker 缓存层
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install -r /app/backend/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
