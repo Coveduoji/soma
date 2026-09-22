@@ -1,9 +1,24 @@
 import { http, downloadBlob, filenameFromDisposition } from './http';
-import type { DashboardData, TrendData, RawAlert, AuditEntry, HippocampusData, Report } from '../types/models';
+import type { DashboardData, TrendData, TrendBucket, RawAlert, AuditEntry, HippocampusData, Report } from '../types/models';
 
 export const dashboardApi = {
   dashboard: async () => (await http.get<DashboardData>('/dashboard')).data,
-  trend: async (range = '24h') => (await http.get<TrendData>(`/trend?range=${range}`)).data,
+  trend: async (start: number, end: number) =>
+    (await http.get<{ start: number; end: number; buckets: TrendBucket[] }>(`/trend?start=${start}&end=${end}`)).data,
+  calibration: async (source = '') =>
+    (await http.get<{
+      buckets: { label: string; count: number; tp: number; fp: number; tp_rate: number | null }[];
+      thresholds: { suppress_below: number; escalate_above: number };
+      sources: string[];
+    }>(`/calibration${source ? `?source=${encodeURIComponent(source)}` : ''}`)).data,
+  deviceTraffic: async (start: number, end: number) =>
+    (await http.get<{ start: number; end: number; sources: string[]; items: { t: number; source: string; count: number }[] }>(
+      `/device-traffic?start=${start}&end=${end}`
+    )).data,
+  deviceClassification: async (source: string, start: number, end: number) =>
+    (await http.get<{ source: string; items: { type: string; count: number }[] }>(
+      `/device-classification?start=${start}&end=${end}${source ? `&source=${encodeURIComponent(source)}` : ''}`
+    )).data,
   setKnob: async (knob: string) => (await http.put('/knob', { knob })).data,
   toleranceRemove: async (signature: string) => (await http.post('/tolerance/remove', { signature })).data,
   toleranceClear: async () => (await http.post('/tolerance/clear')).data,

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card, Button, Input, InputNumber, Select, Table, Tabs, Typography, Space, Tag, App, Modal } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
 import { configApi } from '../api/config';
+import { dashboardApi } from '../api/dashboard';
+import ConfidenceChart from '../components/ConfidenceChart';
 import { errMsg } from '../api/http';
 import type {
   FreqConfig, GatingConfig, ModelConfig, DetectionConfig, IngestConfig,
@@ -75,6 +77,8 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchText, setBatchText] = useState('');
+  const [calib, setCalib] = useState<{ buckets: any[]; thresholds: { suppress_below: number; escalate_above: number }; sources: string[] } | null>(null);
+  const [calibSource, setCalibSource] = useState('');
 
   const load = async () => {
     try {
@@ -92,6 +96,15 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
     }
   };
   useEffect(() => { load(); }, []);
+
+  const loadCalib = async () => {
+    try {
+      setCalib(await dashboardApi.calibration(calibSource));
+    } catch (e) {
+      message.error(errMsg(e));
+    }
+  };
+  useEffect(() => { loadCalib(); }, [calibSource]);
 
   const save = async (fn: () => Promise<void>, ok: string) => {
     try {
@@ -297,6 +310,20 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
           },
         ]}
       />
+
+      <Typography.Text strong style={{ display: 'block', margin: '12px 0 8px' }}>置信度校准（据此调抑制线/顶出线）</Typography.Text>
+      <Space style={{ marginBottom: 8 }}>
+        <Select
+          value={calibSource}
+          style={{ width: 160 }}
+          onChange={(v) => setCalibSource(v)}
+          options={[
+            { value: '', label: '全部来源' },
+            ...(calib?.sources ?? []).map((s) => ({ value: s, label: s })),
+          ]}
+        />
+      </Space>
+      {calib && <ConfidenceChart buckets={calib.buckets} thresholds={calib.thresholds} />}
     </Card>
   );
 

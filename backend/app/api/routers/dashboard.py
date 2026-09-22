@@ -40,12 +40,51 @@ def dashboard():
     }
 
 
+def _range_ts(start: int | None, end: int | None) -> tuple[int, int]:
+    """把可选 start/end（unix 秒）补成完整范围，缺省近 24h。"""
+    end_ts = end if end is not None else int(datetime.now().timestamp())
+    start_ts = start if start is not None else end_ts - 24 * 3600
+    return start_ts, end_ts
+
+
 @router.get("/trend")
-def trend(range: str = "24h"):
-    """告警流量趋势（时间桶序列）。range: 24h / 7d / 30d。"""
-    ranges = {"24h": (24, 3600), "7d": (168, 21600), "30d": (720, 86400)}
-    hours, bucket = ranges.get(range, ranges["24h"])
-    return {"range": range, "buckets": db.alert_trend(hours, bucket)}
+def trend(start: int | None = None, end: int | None = None):
+    """告警流量趋势（时间桶序列）。start/end 为 unix 秒，缺省近 24h。"""
+    s, e = _range_ts(start, end)
+    return {"start": s, "end": e, "buckets": db.alert_trend(s, e)}
+
+
+@router.get("/calibration")
+def calibration(source: str | None = None, start: int | None = None, end: int | None = None):
+    """置信度校准视图：上板告警的置信度分布 + 各桶实际真阳率 + 当前阈值。"""
+    s, e = _range_ts(start, end)
+    knob = state.get_knob(state.get_knob_name())
+    return {
+        "buckets": db.confidence_calibration(source, start_ts=s, end_ts=e),
+        "thresholds": {"suppress_below": knob.suppress_below, "escalate_above": knob.escalate_above},
+        "sources": db.get_distinct_sources(),
+    }
+
+
+@router.get("/device-traffic")
+def device_traffic(start: int | None = None, end: int | None = None):
+    """按设备（来源）的告警流量（时间桶序列）。start/end 为 unix 秒，缺省近 24h。"""
+    s, e = _range_ts(start, end)
+    return {
+        "start": s, "end": e,
+        "sources": db.get_distinct_sources(),
+        "items": db.device_traffic(s, e),
+    }
+
+
+@router.get("/device-classification")
+def device_classification(source: str | None = None, start: int | None = None, end: int | None = None):
+    """某设备（或全部）的告警按类型分类。"""
+    s, e = _range_ts(start, end)
+    return {
+        "source": source or "",
+        "items": db.device_classification(source, start_ts=s, end_ts=e),
+    }
 
 
 @router.get("/knob")

@@ -185,7 +185,7 @@
         "strip_prefix": "bracket_kv",
         "map": {
           "time": "_timestamp",
-          "type": "alert_type",
+          "type": "event",
           "asset": "dst_ip",
           "entities": [
             [
@@ -302,7 +302,7 @@
         "strip_prefix": "bracket_kv",
         "map": {
           "time": "_timestamp",
-          "type": "alert_type",
+          "type": "event",
           "asset": "dst_ip",
           "entities": [
             [

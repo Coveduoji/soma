@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 
 from sqlalchemy import select, func, text, or_, cast, String, case
 from sqlalchemy.orm import aliased
@@ -363,30 +364,102 @@ def set_case_reported_alerts(case_id: int, count: int) -> None:
             s.commit()
 
 
-def alert_trend(range_hours: int, bucket_seconds: int) -> list[dict]:
-    now = int(time.time())
+def _ts_to_dt(ts: int | None) -> str | None:
+    """unix 秒 → UTC 'YYYY-MM-DD HH:MM:SS'（与 Alert.created_at 存储格式一致）。"""
+    if ts is None:
+        return None
+    return datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _time_conds(start_ts: int | None, end_ts: int | None) -> list:
+    """按时间范围生成 created_at 过滤条件。"""
+    conds = [Alert.created_at != ""]
+    if start_ts is not None:
+        conds.append(Alert.created_at >= _ts_to_dt(start_ts))
+    if end_ts is not None:
+        conds.append(Alert.created_at <= _ts_to_dt(end_ts))
+    return conds
+
+
+def alert_trend(start_ts: int, end_ts: int) -> list[dict]:
+    bucket = max(60, (end_ts - start_ts) // 30)
     with SessionLocal() as s:
         q = (select(func.strftime("%s", Alert.created_at), Alert.suppressed)
-             .where(Alert.created_at != "", Alert.created_at >= func.datetime("now", f"-{range_hours} hours")))
+             .where(*_time_conds(start_ts, end_ts)))
         rows = s.execute(q).all()
 
     agg: dict[int, dict] = {}
     for t, suppressed in rows:
-        bucket = int(t) // bucket_seconds * bucket_seconds
-        d = agg.setdefault(bucket, {"total": 0, "surfaced": 0})
+        b = int(t) // bucket * bucket
+        d = agg.setdefault(b, {"total": 0, "surfaced": 0})
         d["total"] += 1
         if not suppressed:
             d["surfaced"] += 1
 
-    out: list[dict] = []
-    nb = range_hours * 3600 // bucket_seconds
-    end_bucket = now // bucket_seconds * bucket_seconds
-    bucket = end_bucket - (nb - 1) * bucket_seconds
-    for _ in range(nb):
-        d = agg.get(bucket, {"total": 0, "surfaced": 0})
-        out.append({"t": bucket, "total": d["total"], "surfaced": d["surfaced"]})
-        bucket += bucket_seconds
-    return out
+    start_bucket = start_ts // bucket * bucket
+    nb = (end_ts - start_ts) // bucket + 1
+    return [{"t": start_bucket + i * bucket,
+             **agg.get(start_bucket + i * bucket, {"total": 0, "surfaced": 0})}
+            for i in range(nb)]
+
+
+def confidence_calibration(source: str | None = None, bins: int = 10,
+                           start_ts: int | None = None, end_ts: int | None = None) -> list[dict]:
+    """置信度校准：上板告警按置信度分桶，统计各桶告警数 + 被标注真阳/误报数，算实际准确率。"""
+    conds = [Alert.suppressed == 0]
+    if source:
+        conds.append(Alert.source == source)
+    if start_ts is not None:
+        conds.append(Alert.created_at >= _ts_to_dt(start_ts))
+    if end_ts is not None:
+        conds.append(Alert.created_at <= _ts_to_dt(end_ts))
+    with SessionLocal() as s:
+        rows = s.execute(select(Alert.confidence, Alert.verdict).where(*conds)).all()
+
+    buckets = [{"lo": i / bins, "hi": (i + 1) / bins, "label": f"{i / bins:.1f}-{(i + 1) / bins:.1f}",
+                "count": 0, "tp": 0, "fp": 0, "tp_rate": None} for i in range(bins)]
+    for conf, verdict in rows:
+        if conf is None:
+            continue
+        idx = min(int(conf * bins), bins - 1)
+        buckets[idx]["count"] += 1
+        if verdict == "True Positive":
+            buckets[idx]["tp"] += 1
+        elif verdict == "False Positive":
+            buckets[idx]["fp"] += 1
+    for b in buckets:
+        labeled = b["tp"] + b["fp"]
+        if labeled:
+            b["tp_rate"] = round(b["tp"] / labeled, 3)
+    return buckets
+
+
+def device_traffic(start_ts: int, end_ts: int) -> list[dict]:
+    """按设备（来源）的告警流量：返回扁平 [{t, source, count}]，供多序列折线。"""
+    bucket = max(60, (end_ts - start_ts) // 30)
+    with SessionLocal() as s:
+        q = (select(Alert.source, func.strftime("%s", Alert.created_at))
+             .where(*_time_conds(start_ts, end_ts)))
+        rows = s.execute(q).all()
+
+    agg: dict[tuple[str, int], int] = {}
+    for source, t in rows:
+        b = int(t) // bucket * bucket
+        agg[(source, b)] = agg.get((source, b), 0) + 1
+    return [{"t": b, "source": src, "count": n}
+            for (src, b), n in sorted(agg.items(), key=lambda kv: (kv[0][0], kv[0][1]))]
+
+
+def device_classification(source: str | None = None,
+                          start_ts: int | None = None, end_ts: int | None = None) -> list[dict]:
+    """某设备（或全部）的告警按类型分类计数。"""
+    conds = _time_conds(start_ts, end_ts)
+    if source:
+        conds.append(Alert.source == source)
+    with SessionLocal() as s:
+        q = (select(Alert.type, func.count())
+             .where(*conds).group_by(Alert.type).order_by(func.count().desc()))
+        return [{"type": t, "count": n} for t, n in s.execute(q).all()]
 
 
 CASE_TRANSITIONS = {

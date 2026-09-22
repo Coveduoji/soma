@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { Row, Col, Card, Statistic, Progress, Segmented, Button, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Progress, Button, Typography, Select, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboard';
 import TrendChart from '../components/TrendChart';
+import DeviceTrafficChart from '../components/DeviceTrafficChart';
+import DeviceClassChart from '../components/DeviceClassChart';
 import ExportReport from '../components/report/ExportReport';
 import { useTerms } from '../hooks/useTerms';
 
 export default function Dashboard() {
   const { t } = useTerms();
   const navigate = useNavigate();
-  const [range, setRange] = useState('24h');
+  const [timeRange, setTimeRange] = useState<[number, number]>([
+    dayjs().subtract(24, 'hour').unix(),
+    dayjs().unix(),
+  ]);
+  const [devSource, setDevSource] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
 
   const { data: d } = useQuery({
@@ -20,8 +27,20 @@ export default function Dashboard() {
   });
 
   const { data: trend } = useQuery({
-    queryKey: ['trend', range],
-    queryFn: () => dashboardApi.trend(range),
+    queryKey: ['trend', timeRange],
+    queryFn: () => dashboardApi.trend(timeRange[0], timeRange[1]),
+    refetchInterval: 15000,
+  });
+
+  const { data: devTraffic } = useQuery({
+    queryKey: ['device-traffic', timeRange],
+    queryFn: () => dashboardApi.deviceTraffic(timeRange[0], timeRange[1]),
+    refetchInterval: 15000,
+  });
+
+  const { data: devClass } = useQuery({
+    queryKey: ['device-classification', devSource, timeRange],
+    queryFn: () => dashboardApi.deviceClassification(devSource, timeRange[0], timeRange[1]),
     refetchInterval: 15000,
   });
 
@@ -44,9 +63,21 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>{t('dashboard')}</Typography.Title>
         <div style={{ flex: 1 }} />
+        <DatePicker.RangePicker
+          showTime
+          value={[dayjs(timeRange[0] * 1000), dayjs(timeRange[1] * 1000)]}
+          presets={[
+            { label: '近24小时', value: [dayjs().subtract(24, 'hour'), dayjs()] },
+            { label: '近7天', value: [dayjs().subtract(7, 'day'), dayjs()] },
+            { label: '近30天', value: [dayjs().subtract(30, 'day'), dayjs()] },
+          ]}
+          onChange={(v) => {
+            if (v && v[0] && v[1]) setTimeRange([v[0].unix(), v[1].unix()]);
+          }}
+        />
         <Button type="primary" onClick={() => setExportOpen(true)}>导出报告</Button>
       </div>
 
@@ -78,22 +109,38 @@ export default function Dashboard() {
         </Typography.Paragraph>
       </Card>
 
+      <Card style={{ marginTop: 16 }} title="流量趋势">
+        {trend && <TrendChart buckets={trend.buckets} />}
+      </Card>
+
+      <Card style={{ marginTop: 16 }} title="设备流量">
+        <Row gutter={[16, 16]}>
+          {(devTraffic?.sources ?? []).map((src) => (
+            <Col xs={24} lg={12} key={src}>
+              <Card size="small" title={src}>
+                <DeviceTrafficChart items={devTraffic!.items.filter((i) => i.source === src)} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Card>
+
       <Card
         style={{ marginTop: 16 }}
-        title="流量趋势"
+        title="告警分类"
         extra={
-          <Segmented
-            value={range}
-            onChange={(v) => setRange(v as string)}
+          <Select
+            value={devSource}
+            style={{ width: 180 }}
+            onChange={(v) => setDevSource(v)}
             options={[
-              { label: '近24小时', value: '24h' },
-              { label: '近7天', value: '7d' },
-              { label: '近30天', value: '30d' },
+              { value: '', label: '全部设备' },
+              ...(devTraffic?.sources ?? []).map((s) => ({ value: s, label: s })),
             ]}
           />
         }
       >
-        {trend && <TrendChart buckets={trend.buckets} />}
+        {devClass && <DeviceClassChart items={devClass.items} />}
       </Card>
 
       <ExportReport open={exportOpen} onClose={() => setExportOpen(false)} />
