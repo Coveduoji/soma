@@ -14,6 +14,9 @@ export const dashboardApi = {
     (await http.post<{ case_id: number; correlation_uid: string }>(`/suppressed/${id}/restore`)).data,
   analyzeAlert: async (alertId: number) =>
     (await http.post<Report>(`/alerts/${alertId}/analyze`)).data,
+  deadLetter: async () => (await http.get<{ count: number; items: any[] }>('/kafka/dead-letter')).data,
+  replayDeadLetter: async () =>
+    (await http.post<{ replayed: number; failed: number; remaining: number }>('/kafka/dead-letter/replay')).data,
   thalamus: async (params: Record<string, string>) =>
     (await http.get<{ items: RawAlert[]; total: number; sources: string[] }>(`/thalamus?${new URLSearchParams(params).toString()}`)).data,
   audit: async () => (await http.get<{ items: AuditEntry[] }>('/audit')).data,

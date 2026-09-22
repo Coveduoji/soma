@@ -27,10 +27,26 @@ export default function Settings() {
     queryFn: async () => (await http.get('/health')).data,
     enabled: canMaintain,
   });
+  const { data: deadLetter } = useQuery({
+    queryKey: ['dead-letter'],
+    queryFn: dashboardApi.deadLetter,
+    enabled: canMaintain,
+  });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['health'] });
     qc.invalidateQueries({ queryKey: ['dashboard'] });
+  };
+
+  const replayDeadLetter = async () => {
+    try {
+      const r = await dashboardApi.replayDeadLetter();
+      message.success(`重放完成：成功 ${r.replayed} 条，失败 ${r.failed} 条，剩余 ${r.remaining} 条`);
+      qc.invalidateQueries({ queryKey: ['dead-letter'] });
+      invalidate();
+    } catch (e) {
+      message.error(errMsg(e));
+    }
   };
 
   const setKnob = async (knob: string) => {
@@ -129,9 +145,12 @@ export default function Settings() {
               </Typography.Paragraph>
             )}
             {canMaintain && (
-              <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                也可以把 rsyslog / 网络设备转发到上面的 syslog 端口，实时接入。
-              </Typography.Paragraph>
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+                  也可以把 rsyslog / 网络设备转发到上面的 syslog 端口，实时接入。
+                </Typography.Paragraph>
+                <Button onClick={replayDeadLetter}>重放死信{deadLetter && deadLetter.count > 0 ? `（${deadLetter.count} 条）` : ''}</Button>
+              </Space>
             )}
           </Card>
         )}

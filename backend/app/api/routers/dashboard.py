@@ -13,6 +13,7 @@ import config
 from app import crud as db
 import innate
 import llm
+from app.services import kafka_consumer
 from app.services import pipeline
 from app.services import report
 from app.services import state
@@ -256,6 +257,18 @@ def consolidate_now():
     """手动触发夜间巩固（睡眠巩固：SQLite → 检索记忆，供系统2 RAG）。"""
     import nightly
     return nightly.consolidate()
+
+
+@router.get("/kafka/dead-letter", dependencies=[Depends(deps.require_perm("maintenance"))])
+def dead_letter():
+    """查看 Kafka 死信（处理失败的消息，可重放）。"""
+    return {"count": kafka_consumer.dead_letter_count(), "items": kafka_consumer.list_dead_letters()}
+
+
+@router.post("/kafka/dead-letter/replay", dependencies=[Depends(deps.require_perm("maintenance"))])
+def replay_dead_letter():
+    """重放 Kafka 死信：成功的移除，失败的保留。"""
+    return kafka_consumer.replay_dead_letter()
 
 
 @router.get("/presets")
