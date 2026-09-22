@@ -240,7 +240,17 @@ def process_signal(signal: dict, knob_name: str | None = None) -> dict:
             entities=signal.get("entities", []),
         )
     elif tolerance.is_tolerated(signal, tol, ttl):
-        return _suppress("免疫耐受：已知好，白名单降级")
+        # 白名单命中：低风险→静默；高风险（疑似真实攻击复刻了已知好形状）→不误杀，上板复核
+        if signal.get("risk", 0) < d.get("risk_threshold", 0.3):
+            return _suppress("免疫耐受：已知好，白名单降级")
+        db.insert_audit("tolerance_risk_conflict", f"signal {signal.get('asset', '')}",
+                        json.dumps({"risk": signal.get("risk", 0)}, ensure_ascii=False))
+        e = blackboard.Event(
+            time=signal["time"], source=signal["source"], asset=signal["asset"], etype=signal["type"],
+            confidence=d["restore_conf"], raw=signal["raw"],
+            reason="白名单命中但风险分高，需复核（疑似真实攻击）",
+            entities=signal.get("entities", []),
+        )
     else:
         v = amygdala.judge_signal(signal, client)
         # 频率降级：时间窗外历史同类型告警极多 → 很可能业务误报，降级并写记忆
