@@ -494,13 +494,11 @@ docker compose up -d --build</code></pre>
 
     <section id="ingest">
       <h2><span class="no">五</span>数据接入</h2>
-      <p>平台支持<strong>多通道 + 多来源</strong>接入，五条通道汇聚到同一条处理流水线。</p>
+      <p>平台支持<strong>多通道 + 多来源</strong>接入，三条通道汇聚到同一条处理流水线。</p>
       <div class="tablewrap"><table>
         <tr><th>通道</th><th>入口</th><th>鉴权</th><th>用途</th></tr>
         <tr><td class="n">syslog 接收</td><td>UDP/TCP <code>:5514</code></td><td>无（靠 bind）</td><td>实时流式</td></tr>
         <tr><td class="n">HTTP JSON API</td><td><code>POST /api/ingest</code></td><td><code>X-API-Token</code></td><td>机器/脚本流式</td></tr>
-        <tr><td class="n">文件上传</td><td>设置 → 数据接入</td><td>用户 JWT</td><td>JSONL/JSON/CSV 批量</td></tr>
-        <tr><td class="n">CLI 批量</td><td><code>python3 ingest.py</code></td><td>本地</td><td>离线全量（重置库）</td></tr>
         <tr><td class="n">Filebeat 文件日志</td><td>本机日志文件 → Kafka</td><td>无（内部通道）</td><td>文件尾部采集流式</td></tr>
       </table></div>
 
@@ -671,7 +669,7 @@ docker compose up -d --build</code></pre>
         <tr><th>权限键</th><th>含义</th><th>覆盖</th></tr>
         <tr><td class="n"><code>triage</code></td><td>分诊动作</td><td>标记误报/真阳、放回、改案件、外发、批量误报、免疫规则</td></tr>
         <tr><td class="n"><code>config</code></td><td>配置写</td><td>旋钮/模式/模型/阈值/接入/来源映射/webhook/频率/门控</td></tr>
-        <tr><td class="n"><code>maintenance</code></td><td>维护</td><td>清库、夜间巩固、文件上传</td></tr>
+        <tr><td class="n"><code>maintenance</code></td><td>维护</td><td>清库、夜间巩固</td></tr>
         <tr><td class="n"><code>users</code></td><td>用户管理</td><td>建号/删号/改角色/重置密码/配权限</td></tr>
       </table></div>
       <p>读接口（所有 GET）登录即可看。新建 <code>user</code> 默认 <code>["triage"]</code>；admin 在「用户」页逐人勾选。</p>

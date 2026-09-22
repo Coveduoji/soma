@@ -5,9 +5,8 @@ import json
 from datetime import datetime
 
 import os
-import tempfile
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.core import deps
 import config
@@ -16,7 +15,6 @@ import innate
 import llm
 from app.services import pipeline
 from app.services import report
-import signals
 from app.services import state
 import tolerance
 from app.services import webhook
@@ -618,19 +616,3 @@ def info():
         "deep_model": m["deep_model"] or os.environ.get("NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner"),
         "mode": state.get_model_mode(),
     }
-
-
-@router.post("/ingest/upload", dependencies=[Depends(deps.require_perm("maintenance"))])
-async def ingest_upload(file: UploadFile = File(...)):
-    """上传 JSONL/JSON/CSV 文件，增量入库（UI 动作，走用户 JWT）。"""
-    content = await file.read()
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    with tempfile.NamedTemporaryFile(suffix=ext, delete=False, mode="wb") as f:
-        f.write(content)
-        tmp = f.name
-    try:
-        sigs = signals.load_signals(tmp)
-    finally:
-        os.unlink(tmp)
-    results = [pipeline.process_signal(s) for s in sigs]
-    return {"ingested": len(results), "results": results}

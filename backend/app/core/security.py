@@ -61,6 +61,6 @@ def decode_token(token: str) -> dict | None:
 PERMISSIONS: dict[str, str] = {
     "triage": "分诊：标记误报/真阳性、放回、改案件、外发、免疫规则",
     "config": "配置：旋钮/模型/检测/接入/来源/Webhook/预设/频率/门槛",
-    "maintenance": "维护：清库、夜间巩固、上传告警文件",
+    "maintenance": "维护：清库、夜间巩固",
     "users": "用户管理：建号/删号/改角色/改权限",
 }

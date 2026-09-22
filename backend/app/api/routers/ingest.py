@@ -1,7 +1,4 @@
-"""机器入库 API：JSON 信号流，共享 token 保护（与用户登录并存）。
-
-文件上传（/api/ingest/upload）是 UI 动作，走用户 JWT，放在 dashboard 路由里。
-"""
+"""机器入库 API：JSON 信号流，共享 token 保护（与用户登录并存）。"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

@@ -48,7 +48,7 @@
 
 ## 四、开发待办
 
-- **批量 `process()` 对齐**：`ingest.py`（CLI）走的批处理 `pipeline.process()` 还没加 budget + 单信号门槛，跟增量 `process_signal` 行为不一致——用真实 key 跑 CLI 会无上限唤醒系统2，需对齐。
+- ~~**批量 `process()` 对齐**~~：已解决——CLI `ingest.py` 与文件上传模块已废除，批量 `process()` 随之移除，只留流式 `process_signal`（自带 budget + 单信号门槛）。
 - **案件实体图链式视图**（可选）：案件详情现在是「同告警内实体两两连线」的共现图，可改成按攻击阶段时序的 kill-chain 视图（合并 IP↔主机对、按时间排序）。
 - **前端 token 输入 UI**（可选）：后端设 `NEUROIMMUNE_API_TOKEN` 后，前端没有填 token 的地方，只能控制台 `localStorage` 手设。
 - **免疫签名相似度匹配**（可选进阶）：现在免疫层按签名精确相等匹配，将来可用 Jaccard / SimHash 或 embedding 余弦相似度做「近似去重」，把相似但不完全相同的告警聚成一簇（Drain + 语义相似度做告警降噪的论文报告了 >99% 噪声削减）。

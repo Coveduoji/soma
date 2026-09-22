@@ -48,9 +48,4 @@ export const configApi = {
   consolidate: async () => (await http.post<{ status: string; memory: string | null }>('/consolidate')).data,
   info: async () =>
     (await http.get<{ syslog: { bind: string; port: number }; model: string; deep_model: string }>('/info')).data,
-  upload: async (file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return (await http.post<{ ingested: number }>('/ingest/upload', fd)).data;
-  },
 };

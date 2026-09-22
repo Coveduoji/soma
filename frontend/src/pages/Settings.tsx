@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, Space, Typography, Button, Segmented, Upload, Descriptions, App, Tag } from 'antd';
-import { UploadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Space, Typography, Button, Segmented, Descriptions, App, Tag } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { configApi } from '../api/config';
 import { dashboardApi } from '../api/dashboard';
@@ -47,16 +47,6 @@ export default function Settings() {
     try {
       await configApi.setMode(m);
       message.success(m === 'mock' ? '已切到 Mock 模式（零成本）' : m === 'real' ? '已切到真实模型' : '已切到自动模式');
-      invalidate();
-    } catch (e) {
-      message.error(errMsg(e));
-    }
-  };
-
-  const uploadFile = async (file: File) => {
-    try {
-      const r = await configApi.upload(file);
-      message.success(`已上传入库 ${r.ingested} 条`);
       invalidate();
     } catch (e) {
       message.error(errMsg(e));
@@ -139,21 +129,9 @@ export default function Settings() {
               </Typography.Paragraph>
             )}
             {canMaintain && (
-              <>
-                <Upload
-                  accept=".jsonl,.json,.csv"
-                  showUploadList={false}
-                  beforeUpload={(file) => {
-                    uploadFile(file);
-                    return false;
-                  }}
-                >
-                  <Button icon={<UploadOutlined />} type="primary">上传告警文件（JSONL/JSON/CSV）</Button>
-                </Upload>
-                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                  也可以把 rsyslog / 网络设备转发到上面的 syslog 端口，实时接入。
-                </Typography.Paragraph>
-              </>
+              <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                也可以把 rsyslog / 网络设备转发到上面的 syslog 端口，实时接入。
+              </Typography.Paragraph>
             )}
           </Card>
         )}
