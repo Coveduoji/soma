@@ -262,11 +262,13 @@ def update_case_strength(case_id: int, strength: float) -> None:
             s.commit()
 
 
-def update_case_risk(case_id: int, risk: float) -> None:
+def update_case_risk(case_id: int, risk: float, incomplete: bool = False) -> None:
     with SessionLocal() as s:
         c = s.get(Case, case_id)
         if c:
             c.risk = risk
+            # 一旦标记为「风险信息不全」就保持（案内曾出现过保守默认），后续完整告警不撤销
+            c.risk_incomplete = bool(c.risk_incomplete or incomplete)
             s.commit()
 
 

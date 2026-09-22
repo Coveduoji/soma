@@ -39,7 +39,8 @@ def _case_row(c: Case) -> dict:
     return {
         "id": c.id, "correlation_uid": c.correlation_uid, "title": c.title,
         "strength": c.strength, "status": c.status, "verdict": c.verdict,
-        "severity": c.severity, "risk": c.risk, "entities": c.entity_summary or [],
+        "severity": c.severity, "risk": c.risk, "risk_incomplete": c.risk_incomplete,
+        "entities": c.entity_summary or [],
         "disposition_note": c.disposition_note, "reported_at_alerts": c.reported_at_alerts,
         "created_at": c.created_at,
     }

@@ -20,6 +20,7 @@ export interface Case {
   verdict: string;
   severity: string;
   risk?: number;
+  risk_incomplete?: boolean;
   entities: Entity[];
 }
 

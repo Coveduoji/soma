@@ -34,6 +34,7 @@ class Case(Base):
     verdict: Mapped[str] = mapped_column(String, default="")
     severity: Mapped[str] = mapped_column(String, default="")
     risk: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    risk_incomplete: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     entity_summary: Mapped[list] = mapped_column(JSON, default=list)
     disposition_note: Mapped[str] = mapped_column(String, default="")
     reported_at_alerts: Mapped[int] = mapped_column(Integer, default=0)

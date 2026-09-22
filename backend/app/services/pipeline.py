@@ -46,15 +46,19 @@ _assets_cache_time = 0.0
 
 # 风险模型归一化：标准枚举 → 0-1 数值
 CRITICALITY_VAL = {"normal": 0.3, "important": 0.6, "critical": 1.0}
+# 未命中资产清单的实体按「未知」算（0.6，等同「重要」）——比显式标「普通」更保守，
+# 避免资产清单覆盖不全时，清单外资产被系统性低估（乘法 + 0.3 阈值下几乎顶不出来）。
+UNKNOWN_CRITICALITY = 0.6
 ATTACK_RESULT_VAL = {"blocked": 0.0, "failed": 0.0, "success": 0.7, "compromised": 1.0}
 SEVERITY_VAL = {"low": 0.25, "medium": 0.5, "high": 0.75, "critical": 1.0}
 
 # 攻击结果 raw 兜底正则（来源没配解析规则时从原文猜）
+# 注意：不匹配「attempt/尝试」——未遂≠无害，归入「未知」走保守默认（假设得逞）而非 0 危害。
 _ATTACK_RESULT_GUESS = [
     (re.compile(r"已拦截|已阻断|已阻止|blocked|deny", re.IGNORECASE), "blocked"),
     (re.compile(r"失陷|入侵成功|已沦陷|compromised", re.IGNORECASE), "compromised"),
     (re.compile(r"成功|success", re.IGNORECASE), "success"),
-    (re.compile(r"失败|failed|attempt", re.IGNORECASE), "failed"),
+    (re.compile(r"失败|failed", re.IGNORECASE), "failed"),
 ]
 
 
@@ -96,9 +100,9 @@ def _enrich_signal(signal: dict) -> None:
 
     # 风险分 = 资产价值 × 攻击得逞 × 攻击类型危害；缺失维度用保守默认并标记 risk_incomplete
     risk_incomplete = False
-    crit_vals = [CRITICALITY_VAL.get(ent.get("criticality", "normal"), 0.3)
+    crit_vals = [CRITICALITY_VAL.get(ent.get("criticality", "normal"), UNKNOWN_CRITICALITY)
                  for ent in signal.get("entities", []) if ent.get("criticality")]
-    criticality_val = max(crit_vals) if crit_vals else 0.3  # 无内部资产按「普通」算
+    criticality_val = max(crit_vals) if crit_vals else UNKNOWN_CRITICALITY  # 无内部资产按「未知」算
 
     ar = signal.get("attack_result")
     if ar in ATTACK_RESULT_VAL:
@@ -327,8 +331,10 @@ def process_signal(signal: dict, knob_name: str | None = None) -> dict:
         alerts = db.get_case_alerts(case_id)
         strength = max(a["confidence"] for a in alerts) + min(d["chain_cap"], d["chain_bonus"] * (len(alerts) - 1))
         db.update_case_strength(case_id, round(strength, 3))
-        case_risk = max(signal.get("risk", 0), db.get_case(case_id).get("risk", 0) or 0)
-        db.update_case_risk(case_id, round(case_risk, 3))
+        existing = db.get_case(case_id)
+        case_risk = max(signal.get("risk", 0), existing.get("risk", 0) or 0)
+        case_incomplete = bool(signal.get("risk_incomplete")) or bool(existing.get("risk_incomplete"))
+        db.update_case_risk(case_id, round(case_risk, 3), case_incomplete)
 
     # 顶出决策：风险分越过风险阈值才考虑唤醒系统2，但要过两重门——
     #   ① 单信号门槛：单信号案件默认不醒（除非 conf >= 地板值），要等拼链或确凿单点 IOC；

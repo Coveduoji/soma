@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Space, Typography, Tag, Button, Select, Input, Listy, App, Divider, Flex } from 'antd';
+import { Card, Row, Col, Space, Typography, Tag, Button, Select, Input, Listy, App, Divider, Flex, Tooltip } from 'antd';
 import { ArrowLeftOutlined, ShareAltOutlined, ExportOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -173,7 +173,13 @@ export default function CaseDetail() {
           <Typography.Text code>{c.correlation_uid}</Typography.Text>
         </Typography.Title>
         <Typography.Text type="secondary">
-          风险 {c.risk?.toFixed(2) ?? '—'} · 强度 {c.strength.toFixed(2)} · {alerts.length} 条告警
+          风险 {c.risk?.toFixed(2) ?? '—'}
+          {c.risk_incomplete && (
+            <Tooltip title="风险分不全：缺攻击结果/威胁等级，按保守默认估算">
+              <Tag color="warning" style={{ marginInlineEnd: 0, marginLeft: 6 }}>不全</Tag>
+            </Tooltip>
+          )}
+          {' '}· 强度 {c.strength.toFixed(2)} · {alerts.length} 条告警
         </Typography.Text>
       </div>
 

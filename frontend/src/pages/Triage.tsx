@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Input, Select, Checkbox, Tag, Button, Space, App, Typography, Flex } from 'antd';
+import { Table, Input, Select, Checkbox, Tag, Button, Space, App, Typography, Flex, Tooltip } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { casesApi } from '../api/cases';
@@ -77,7 +77,16 @@ export default function Triage() {
       dataIndex: 'entities',
       render: (es: { type: string; value: string }[]) => es.map((e) => e.value).join(' · '),
     },
-    { title: '风险', dataIndex: 'risk', width: 90, render: (r: number | undefined) => riskTag(r) },
+    { title: '风险', dataIndex: 'risk', width: 130, render: (r: number | undefined, rec: Case) => (
+      <Space size={4}>
+        {riskTag(r)}
+        {rec.risk_incomplete && (
+          <Tooltip title="风险分不全：缺攻击结果/威胁等级，按保守默认估算">
+            <Tag color="warning" style={{ marginInlineEnd: 0 }}>不全</Tag>
+          </Tooltip>
+        )}
+      </Space>
+    ) },
     {
       title: '状态',
       dataIndex: 'status',
