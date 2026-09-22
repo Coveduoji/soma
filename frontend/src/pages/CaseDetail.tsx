@@ -204,7 +204,7 @@ export default function CaseDetail() {
                     {a.innate ? ' · 固有免疫秒拦' : ''}
                     {a.verdict && <Tag style={{ marginLeft: 6 }}>{verdictLabel(a.verdict)}</Tag>}
                   </div>
-                  <div style={{ fontSize: 13, marginTop: 2 }}>{a.raw}</div>
+                  <div style={{ fontSize: 13, marginTop: 2, wordBreak: 'break-all' }}>{a.raw}</div>
                   <Space size={6} style={{ marginTop: 6 }}>
                     <Button size="small" disabled={busy} onClick={(e) => { e.stopPropagation(); markAlert(a.id, 'False Positive'); }}>误报</Button>
                     <Button size="small" disabled={busy} onClick={(e) => { e.stopPropagation(); markAlert(a.id, 'True Positive'); }}>真阳性</Button>

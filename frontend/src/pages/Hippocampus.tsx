@@ -127,7 +127,7 @@ export default function Hippocampus() {
                         <div style={{ fontSize: 12, color: '#8a8f98' }}>
                           [{e.time}] {e.source}/{e.type} · conf {e.confidence?.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: 13 }}>{e.raw}</div>
+                        <div style={{ fontSize: 13, wordBreak: 'break-all' }}>{e.raw}</div>
                         <div style={{ fontSize: 12 }}>
                           案件{' '}
                           <Typography.Text code style={{ cursor: 'pointer', color: '#2a78d6' }} onClick={() => navigate(`/cases/${e.case_id}`)}>

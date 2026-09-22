@@ -7,8 +7,6 @@ import { useTerms } from '../hooks/useTerms';
 import { errMsg } from '../api/http';
 import type { RawAlert } from '../types/models';
 
-const PAGE = 50;
-
 export default function Thalamus() {
   const { t } = useTerms();
   const navigate = useNavigate();
@@ -18,14 +16,15 @@ export default function Thalamus() {
   const [suppressed, setSuppressed] = useState('');
   const [sort, setSort] = useState<'time' | 'confidence'>('time');
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
 
-  const params: Record<string, string> = { sort, limit: String(PAGE), offset: String(page * PAGE) };
+  const params: Record<string, string> = { sort, limit: String(pageSize), offset: String(page * pageSize) };
   if (q.trim()) params.q = q.trim();
   if (source) params.source = source;
   if (suppressed) params.suppressed = suppressed;
 
   const { data } = useQuery({
-    queryKey: ['thalamus', q, source, suppressed, sort, page],
+    queryKey: ['thalamus', q, source, suppressed, sort, page, pageSize],
     queryFn: () => dashboardApi.thalamus(params),
     refetchInterval: 15000,
   });
@@ -103,8 +102,8 @@ export default function Thalamus() {
                           {a.suppressed ? <Tag style={{ marginLeft: 6 }}>被抑制</Tag> : null}
                           {a.innate ? <Tag color="blue" style={{ marginLeft: 6 }}>固有免疫</Tag> : null}
                         </div>
-                        <div style={{ fontSize: 13, marginTop: 2 }}>{a.raw}</div>
-                        {a.suppressed && a.why ? <div style={{ fontSize: 12, color: '#8a8f98' }}>原因：{a.why}</div> : null}
+                        <div style={{ fontSize: 13, marginTop: 2, wordBreak: 'break-all' }}>{a.raw}</div>
+                        {a.suppressed && a.why ? <div style={{ fontSize: 12, color: '#8a8f98', wordBreak: 'break-all' }}>原因：{a.why}</div> : null}
                         {a.case_uid ? (
                           <div style={{ fontSize: 12 }}>
                             案件{' '}
@@ -118,14 +117,16 @@ export default function Thalamus() {
                     </div>
                   )}
                 />
-                {total > PAGE && (
+                {total > 0 && (
                   <Pagination
                     style={{ marginTop: 12, textAlign: 'center' }}
                     current={page + 1}
-                    pageSize={PAGE}
+                    pageSize={pageSize}
                     total={total}
                     onChange={(p) => setPage(p - 1)}
-                    showSizeChanger={false}
+                    showSizeChanger
+                    pageSizeOptions={[20, 50, 100, 200]}
+                    onShowSizeChange={(_c, size) => { setPageSize(size); setPage(0); }}
                   />
                 )}
               </>
@@ -149,7 +150,7 @@ export default function Thalamus() {
                       <div style={{ fontSize: 12, color: '#8a8f98' }}>
                         [{x.created_at}] <b>{x.action}</b> · {x.entity}
                       </div>
-                      <div style={{ fontSize: 13 }}>{x.changes}</div>
+                      <div style={{ fontSize: 13, wordBreak: 'break-all' }}>{x.changes}</div>
                     </div>
                   )}
                 />
