@@ -143,7 +143,7 @@ export default function Dashboard() {
         {devClass && <DeviceClassChart items={devClass.items} />}
       </Card>
 
-      <ExportReport open={exportOpen} onClose={() => setExportOpen(false)} />
+      <ExportReport open={exportOpen} onClose={() => setExportOpen(false)} sources={devTraffic?.sources} />
     </div>
   );
 }
