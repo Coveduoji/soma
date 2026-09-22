@@ -6,6 +6,7 @@ import { dashboardApi } from '../api/dashboard';
 import { useTerms } from '../hooks/useTerms';
 import { errMsg } from '../api/http';
 import type { RawAlert } from '../types/models';
+import AlertDrawer, { type AlertInfo } from '../components/AlertDrawer';
 
 export default function Thalamus() {
   const { t } = useTerms();
@@ -17,6 +18,7 @@ export default function Thalamus() {
   const [sort, setSort] = useState<'time' | 'confidence'>('time');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
+  const [drawerAlert, setDrawerAlert] = useState<AlertInfo | null>(null);
 
   const params: Record<string, string> = { sort, limit: String(pageSize), offset: String(page * pageSize) };
   if (q.trim()) params.q = q.trim();
@@ -113,7 +115,10 @@ export default function Thalamus() {
                           </div>
                         ) : null}
                       </div>
-                      {a.suppressed && <Button size="small" onClick={() => restore(a.id)}>放回</Button>}
+                      <Space size={4}>
+                        {a.suppressed && <Button size="small" onClick={() => restore(a.id)}>放回</Button>}
+                        <Button size="small" onClick={() => setDrawerAlert(a)}>详情</Button>
+                      </Space>
                     </div>
                   )}
                 />
@@ -159,6 +164,8 @@ export default function Thalamus() {
           </Card>
         </Col>
       </Row>
+
+      <AlertDrawer alert={drawerAlert} open={drawerAlert !== null} onClose={() => setDrawerAlert(null)} />
     </div>
   );
 }

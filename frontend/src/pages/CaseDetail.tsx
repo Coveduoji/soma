@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { casesApi } from '../api/cases';
 import EntityGraph from '../components/graph/EntityGraph';
 import ReportView from '../components/report/ReportView';
+import AlertDrawer, { type AlertInfo } from '../components/AlertDrawer';
 import { statusLabel, verdictLabel } from '../lib/labels';
 import { errMsg } from '../api/http';
 import type { Case, Alert } from '../types/models';
@@ -24,6 +25,8 @@ export default function CaseDetail() {
   const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<{ type: string; value: string } | null>(null);
   const [related, setRelated] = useState<Case[] | null>(null);
+  const [analyzingCase, setAnalyzingCase] = useState(false);
+  const [drawerAlert, setDrawerAlert] = useState<AlertInfo | null>(null);
 
   const { data, refetch } = useQuery({
     queryKey: ['case', caseId],
@@ -68,6 +71,19 @@ export default function CaseDetail() {
   };
 
   const refresh = () => refetch();
+
+  const analyzeCaseNow = async () => {
+    setAnalyzingCase(true);
+    try {
+      await casesApi.analyzeCase(caseId);
+      message.success('AI 研判完成');
+      refresh();
+    } catch (e) {
+      message.error(errMsg(e));
+    } finally {
+      setAnalyzingCase(false);
+    }
+  };
 
   const saveVerdict = async () => {
     if (!verdict) return;
@@ -208,6 +224,7 @@ export default function CaseDetail() {
                   <Space size={6} style={{ marginTop: 6 }}>
                     <Button size="small" disabled={busy} onClick={(e) => { e.stopPropagation(); markAlert(a.id, 'False Positive'); }}>误报</Button>
                     <Button size="small" disabled={busy} onClick={(e) => { e.stopPropagation(); markAlert(a.id, 'True Positive'); }}>真阳性</Button>
+                    <Button size="small" onClick={(e) => { e.stopPropagation(); setDrawerAlert(a); }}>详情</Button>
                   </Space>
                 </div>
               )}
@@ -241,7 +258,10 @@ export default function CaseDetail() {
         </Col>
 
         <Col xs={24} md={8}>
-          <Card title="AI 调查报告" size="small">
+          <Card
+            title={<Space>AI 调查报告 <Button size="small" loading={analyzingCase} onClick={analyzeCaseNow}>AI 研判</Button></Space>}
+            size="small"
+          >
             <ReportView report={report} />
           </Card>
         </Col>
@@ -268,6 +288,8 @@ export default function CaseDetail() {
           <Button icon={<ExportOutlined />} onClick={() => casesApi.exportCase(caseId).catch((e) => message.error(errMsg(e)))}>导出报告</Button>
         </Flex>
       </Card>
+
+      <AlertDrawer alert={drawerAlert} open={drawerAlert !== null} onClose={() => setDrawerAlert(null)} />
     </Space>
   );
 }

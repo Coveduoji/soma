@@ -173,6 +173,14 @@ def alert_disposition(alert_id: int, body: dict | None = None):
     return {"alert_id": alert_id, "verdict": verdict}
 
 
+@router.post("/alerts/{alert_id}/analyze", dependencies=[Depends(deps.require_perm("triage"))])
+def analyze_alert(alert_id: int):
+    """主动研判单条告警：同步跑系统2 深想（单信号），返回结构化报告（不落库）。"""
+    if not db.get_alert(alert_id):
+        raise HTTPException(404, "告警不存在")
+    return pipeline.analyze_alert(alert_id)
+
+
 @router.get("/entities/cases")
 def entity_cases(type: str, value: str):
     """反查：某个实体出现在哪些案件里。"""

@@ -173,6 +173,43 @@ def _retrieve_knowledge(entity_values: list[str], limit: int = 5) -> list[str]:
     return knowledge[-limit:]
 
 
+def _alert_event(a: dict, artifacts: list[dict]) -> blackboard.Event:
+    """告警 dict + 实体 → 黑板上事件（含 entities，供系统2 研判）。"""
+    return blackboard.Event(
+        time=a["time"], source=a["source"], asset=a["asset"], etype=a["type"],
+        confidence=a["confidence"], raw=a["raw"], reason=a["reason"], innate=bool(a["innate"]),
+        entities=[{"type": x["type"], "value": x["value"]} for x in artifacts],
+    )
+
+
+def analyze_case(case_id: int) -> dict:
+    """主动研判一个案件：同步跑系统2 深想，覆盖/刷新案件报告。"""
+    d = state.get_detection_config()
+    deep_client = state.get_deep_client()
+    alerts = db.get_case_alerts(case_id)
+    events: list[blackboard.Event] = []
+    entity_values: list[str] = []
+    for a in alerts:
+        arts = db.get_alert_artifacts(a["id"])
+        entity_values.extend(x["value"] for x in arts)
+        events.append(_alert_event(a, arts))
+    knowledge = _retrieve_knowledge(entity_values, d["rag_limit"])
+    with _case_lock(case_id):
+        report = system2.deep_analyze_chain(events, deep_client, knowledge)
+        db.insert_report(case_id, report)
+    return report
+
+
+def analyze_alert(alert_id: int) -> dict:
+    """主动研判单条告警：同步跑系统2 深想（单信号），不落库。"""
+    d = state.get_detection_config()
+    a = db.get_alert(alert_id)
+    arts = db.get_alert_artifacts(alert_id)
+    event = _alert_event(a, arts)
+    knowledge = _retrieve_knowledge([x["value"] for x in arts], d["rag_limit"])
+    return system2.deep_analyze_chain([event], state.get_deep_client(), knowledge)
+
+
 def process_signal(signal: dict, knob_name: str | None = None) -> dict:
     """增量处理一条信号：过管道 → 按实体归入/合并案件 → 首次顶出才系统2。
 

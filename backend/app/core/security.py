@@ -59,7 +59,7 @@ def decode_token(token: str) -> dict | None:
 
 # 权限键目录（键 → 中文说明），前端据此画勾选面板
 PERMISSIONS: dict[str, str] = {
-    "triage": "分诊：标记误报/真阳性、放回、改案件、外发、免疫规则",
+    "triage": "分诊：标记误报/真阳性、放回、改案件、外发、免疫规则、主动研判",
     "config": "配置：旋钮/模型/检测/接入/来源/Webhook/预设/频率/门槛",
     "maintenance": "维护：清库、夜间巩固",
     "users": "用户管理：建号/删号/改角色/改权限",

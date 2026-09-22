@@ -10,6 +10,7 @@ from app.core import deps
 from app import crud as db
 import innate
 import tolerance
+from app.services import pipeline
 from app.services import webhook
 from signature import signature
 from app.schemas import CasePatch
@@ -176,6 +177,14 @@ def push_case(case_id: int):
     if not db.get_case(case_id):
         raise HTTPException(404, "case not found")
     return {"case_id": case_id, "results": webhook.push_case(case_id)}
+
+
+@router.post("/{case_id}/analyze", dependencies=[Depends(deps.require_perm("triage"))])
+def analyze_case(case_id: int):
+    """主动研判案件：同步跑系统2 深想，覆盖/刷新调查报告。"""
+    if not db.get_case(case_id):
+        raise HTTPException(404, "case not found")
+    return pipeline.analyze_case(case_id)
 
 
 def _case_markdown(case: dict, alerts: list[dict], report: dict | None) -> str:
