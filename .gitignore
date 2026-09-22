@@ -36,6 +36,9 @@ backend/archive/
 # === 离线部署打包产物 ===
 dist-offline*/
 
+# === 生成产物（PPT 等）===
+output/
+
 # === Python ===
 __pycache__/
 *.pyc
