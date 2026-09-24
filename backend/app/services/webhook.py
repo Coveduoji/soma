@@ -154,6 +154,6 @@ def push_case(case_id: int) -> list[dict]:
 def test_webhook(wb: dict) -> bool:
     payload = {
         "event": "test", "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "case": {"correlation_uid": "__test__", "message": "神经免疫外发测试"},
+        "case": {"correlation_uid": "__test__", "message": "Soma外发测试"},
     }
     return _deliver(wb, payload)

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { AuthUser } from '../types/models';
 import { authApi } from '../api/auth';
 
-const TOKEN_KEY = 'neuroimmune_jwt';
+const TOKEN_KEY = 'soma_jwt';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || '';
 export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t);

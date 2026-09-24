@@ -1,36 +1,36 @@
-# 神经免疫 工作台 · 单机自托管部署
+# Soma 工作台 · 单机自托管部署
 # 用法：
-#   cp .env.example .env    # 填 NEUROIMMUNE_ADMIN_PASSWORD / NEUROIMMUNE_API_TOKEN 等
+#   cp .env.example .env    # 填 SOMA_ADMIN_PASSWORD / SOMA_API_TOKEN 等
 #   docker compose up -d --build
-# 数据持久化在命名卷 neuroimmune-data（挂到 backend 的 /data）。
+# 数据持久化在命名卷 soma-data（挂到 backend 的 /data）。
 
 version: "3.8"   # 兼容老版 docker-compose v1（CentOS 7 默认只有 v1）；新版 v2 忽略此字段
 
 services:
   backend:
-    image: neuroimmune-backend:latest
+    image: soma-backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
       network: host   # 构建期用宿主网络（本机代理在 127.0.0.1:7890，容器内需直通宿主）
     environment:
-      NEUROIMMUNE_DATA_DIR: /data
-      NEUROIMMUNE_ADMIN_USER: ${NEUROIMMUNE_ADMIN_USER:-admin}
-      NEUROIMMUNE_ADMIN_PASSWORD: ${NEUROIMMUNE_ADMIN_PASSWORD:-}
-      NEUROIMMUNE_JWT_SECRET: ${NEUROIMMUNE_JWT_SECRET:-}
-      NEUROIMMUNE_API_TOKEN: ${NEUROIMMUNE_API_TOKEN:-}
-      NEUROIMMUNE_SYSLOG_BIND: ${NEUROIMMUNE_SYSLOG_BIND:-0.0.0.0}
-      NEUROIMMUNE_SYSLOG_PORT: ${NEUROIMMUNE_SYSLOG_PORT:-5514}
+      SOMA_DATA_DIR: /data
+      SOMA_ADMIN_USER: ${SOMA_ADMIN_USER:-admin}
+      SOMA_ADMIN_PASSWORD: ${SOMA_ADMIN_PASSWORD:-}
+      SOMA_JWT_SECRET: ${SOMA_JWT_SECRET:-}
+      SOMA_API_TOKEN: ${SOMA_API_TOKEN:-}
+      SOMA_SYSLOG_BIND: ${SOMA_SYSLOG_BIND:-0.0.0.0}
+      SOMA_SYSLOG_PORT: ${SOMA_SYSLOG_PORT:-5514}
       # Kafka 接入（日志云平台打日志到 Kafka，后端消费；留空则关闭 Kafka 通道）
-      NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS: ${NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
-      NEUROIMMUNE_KAFKA_TOPIC: ${NEUROIMMUNE_KAFKA_TOPIC:-neuroimmune-logs}
-      NEUROIMMUNE_KAFKA_GROUP: ${NEUROIMMUNE_KAFKA_GROUP:-neuroimmune}
+      SOMA_KAFKA_BOOTSTRAP_SERVERS: ${SOMA_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SOMA_KAFKA_TOPIC: ${SOMA_KAFKA_TOPIC:-soma-logs}
+      SOMA_KAFKA_GROUP: ${SOMA_KAFKA_GROUP:-soma}
       # 模型接入（可选，空 = mock 模式跑通架构）
-      NEUROIMMUNE_API_KEY: ${NEUROIMMUNE_API_KEY:-}
-      NEUROIMMUNE_BASE_URL: ${NEUROIMMUNE_BASE_URL:-}
-      NEUROIMMUNE_MODEL: ${NEUROIMMUNE_MODEL:-}
-      NEUROIMMUNE_DEEP_MODEL: ${NEUROIMMUNE_DEEP_MODEL:-}
-      NEUROIMMUNE_LOG_LEVEL: ${NEUROIMMUNE_LOG_LEVEL:-INFO}
+      SOMA_API_KEY: ${SOMA_API_KEY:-}
+      SOMA_BASE_URL: ${SOMA_BASE_URL:-}
+      SOMA_MODEL: ${SOMA_MODEL:-}
+      SOMA_DEEP_MODEL: ${SOMA_DEEP_MODEL:-}
+      SOMA_LOG_LEVEL: ${SOMA_LOG_LEVEL:-INFO}
       # 真模型直连：容器内 127.0.0.1:7890 是容器自身回环，够不到宿主代理；DeepSeek 国内直连即可
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
@@ -41,7 +41,7 @@ services:
       NO_PROXY: "*"
       no_proxy: "*"
     volumes:
-      - neuroimmune-data:/data
+      - soma-data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
@@ -87,7 +87,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: neuroimmune-nginx:latest
+    image: soma-nginx:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile
@@ -100,5 +100,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  neuroimmune-data:
+  soma-data:
   filebeat-data:

@@ -31,7 +31,7 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 36, lineHeight: 1 }}>🧠</div>
           <Typography.Title level={4} style={{ marginTop: 12, marginBottom: 4 }}>
-            神经免疫
+            Soma
           </Typography.Title>
           <Typography.Text type="secondary">安全运营工作台 · 登录</Typography.Text>
         </div>

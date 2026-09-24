@@ -60,9 +60,9 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="神经免疫防御", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Soma防御", version="0.1.0", lifespan=lifespan)
 
-_cors_origins = [o.strip() for o in os.environ.get("NEUROIMMUNE_CORS_ORIGINS", "").split(",") if o.strip()]
+_cors_origins = [o.strip() for o in os.environ.get("SOMA_CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -71,7 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_allowed_hosts = [h.strip() for h in os.environ.get("NEUROIMMUNE_ALLOWED_HOSTS", "*").split(",") if h.strip()]
+_allowed_hosts = [h.strip() for h in os.environ.get("SOMA_ALLOWED_HOSTS", "*").split(",") if h.strip()]
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 app.include_router(cases.router)
@@ -82,7 +82,7 @@ app.include_router(ingest_api.router)
 logging_setup.setup_logging()
 
 _STATIC_DIR = Path(os.environ.get(
-    "NEUROIMMUNE_STATIC_DIR",
+    "SOMA_STATIC_DIR",
     str(Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"),
 ))
 
@@ -98,7 +98,7 @@ else:
 
     @app.get("/")
     def root():
-        return {"service": "neuroimmune", "status": "ok", "counts": crud.counts()}
+        return {"service": "soma", "status": "ok", "counts": crud.counts()}
 
 
 @app.get("/api/health")

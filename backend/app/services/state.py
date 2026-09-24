@@ -189,13 +189,13 @@ def get_ingest_config() -> dict:
     cfg = _read(INGEST_PATH, {})
     return {
         "syslog_bind": cfg.get("syslog_bind")
-        or os.environ.get("NEUROIMMUNE_SYSLOG_BIND", "").strip()
+        or os.environ.get("SOMA_SYSLOG_BIND", "").strip()
         or "127.0.0.1",
         "syslog_port": int(cfg.get("syslog_port")
-                           or os.environ.get("NEUROIMMUNE_SYSLOG_PORT", "5514")),
+                           or os.environ.get("SOMA_SYSLOG_PORT", "5514")),
         "consolidate_interval": int(cfg.get("consolidate_interval")
-                                    or os.environ.get("NEUROIMMUNE_CONSOLIDATE_INTERVAL", "21600")),
-        "api_token": cfg.get("api_token", "") or os.environ.get("NEUROIMMUNE_API_TOKEN", "").strip(),
+                                    or os.environ.get("SOMA_CONSOLIDATE_INTERVAL", "21600")),
+        "api_token": cfg.get("api_token", "") or os.environ.get("SOMA_API_TOKEN", "").strip(),
         "retention_alert_days": int(cfg.get("retention_alert_days", 30)),
         "retention_case_days": int(cfg.get("retention_case_days", 180)),
     }
@@ -234,7 +234,7 @@ def get_client():
     llm.load_dotenv()  # 把 .env 填进 os.environ（只补缺），作为 model.json 空值时的 fallback
     mode = get_model_mode()
     m = get_model_config()
-    api_key = m.get("api_key") or os.environ.get("NEUROIMMUNE_API_KEY", "").strip()
+    api_key = m.get("api_key") or os.environ.get("SOMA_API_KEY", "").strip()
     mock_fp = _mock_fingerprint()
     key = (mode, api_key, m.get("base_url"), m.get("model"),
            m.get("temperature"), m.get("timeout"), mock_fp)
@@ -244,9 +244,9 @@ def get_client():
         client = _mock_client()  # auto 或 real 都没 key → 退回 mock
     else:
         client = llm.OpenAICompatClient(
-            base_url=m.get("base_url") or os.environ.get("NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1"),
+            base_url=m.get("base_url") or os.environ.get("SOMA_BASE_URL", "https://api.deepseek.com/v1"),
             api_key=api_key,
-            model=m.get("model") or os.environ.get("NEUROIMMUNE_MODEL", "deepseek-chat"),
+            model=m.get("model") or os.environ.get("SOMA_MODEL", "deepseek-chat"),
             temperature=m.get("temperature", 0.0),
             timeout=m.get("timeout", 120),
             max_connections=judge_concurrency(),
@@ -264,8 +264,8 @@ def get_deep_client():
     mode = get_model_mode()
     m = get_model_config()
     api_key = (m.get("deep_api_key") or m.get("api_key")
-               or os.environ.get("NEUROIMMUNE_DEEP_API_KEY", "").strip()
-               or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
+               or os.environ.get("SOMA_DEEP_API_KEY", "").strip()
+               or os.environ.get("SOMA_API_KEY", "").strip())
     mock_fp = _mock_fingerprint()
     key = (mode, api_key, m.get("deep_base_url"), m.get("deep_model"), m.get("timeout"), mock_fp)
     if _deep_client_cache is not None and _deep_client_cache_key == key:
@@ -275,10 +275,10 @@ def get_deep_client():
     else:
         client = llm.OpenAICompatClient(
             base_url=(m.get("deep_base_url") or m.get("base_url")
-                      or os.environ.get("NEUROIMMUNE_DEEP_BASE_URL", "").strip()
-                      or os.environ.get("NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1")),
+                      or os.environ.get("SOMA_DEEP_BASE_URL", "").strip()
+                      or os.environ.get("SOMA_BASE_URL", "https://api.deepseek.com/v1")),
             api_key=api_key,
-            model=m.get("deep_model") or os.environ.get("NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner"),
+            model=m.get("deep_model") or os.environ.get("SOMA_DEEP_MODEL", "deepseek-reasoner"),
             temperature=None,  # 推理模型不支持 temperature
             timeout=m.get("timeout", 120),
             max_connections=deep_concurrency(),

@@ -4,7 +4,7 @@
 # 用法：./scripts/offline_bundle.sh [输出目录，默认 ./dist-offline]
 #
 # 产出内容：
-#   neuroimmune-images-<时间戳>.tar.gz   四个镜像（backend + nginx + kafka + filebeat）
+#   soma-images-<时间戳>.tar.gz   四个镜像（backend + nginx + kafka + filebeat）
 #   docker-compose.yml                   部署编排
 #   .env.example                         环境变量模板（内网填密码/token 后改名 .env）
 #   backup.sh / restore.sh               备份恢复脚本
@@ -26,8 +26,8 @@ docker pull elastic/filebeat:8.15.0
 
 echo "=== 3/5 导出镜像为 tar.gz ==="
 mkdir -p "$OUT_DIR"
-docker save neuroimmune-backend:latest neuroimmune-nginx:latest apache/kafka:3.9.0 elastic/filebeat:8.15.0 \
-  | gzip > "$OUT_DIR/neuroimmune-images-$STAMP.tar.gz"
+docker save soma-backend:latest soma-nginx:latest apache/kafka:3.9.0 elastic/filebeat:8.15.0 \
+  | gzip > "$OUT_DIR/soma-images-$STAMP.tar.gz"
 
 echo "=== 4/5 拷贝部署文件 ==="
 cp docker-compose.yml "$OUT_DIR/"
@@ -42,6 +42,6 @@ echo "打包目录：$OUT_DIR/"
 ls -lh "$OUT_DIR/" | grep -vE '^total|^d'
 echo
 echo "拷贝整个目录进内网机，然后在内网机执行："
-echo "  gunzip -c neuroimmune-images-*.tar.gz | docker load"
-echo "  cp .env.example .env     # 填 NEUROIMMUNE_ADMIN_PASSWORD / NEUROIMMUNE_API_TOKEN"
+echo "  gunzip -c soma-images-*.tar.gz | docker load"
+echo "  cp .env.example .env     # 填 SOMA_ADMIN_PASSWORD / SOMA_API_TOKEN"
 echo "  docker compose up -d --no-build"

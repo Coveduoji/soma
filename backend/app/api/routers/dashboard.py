@@ -404,16 +404,16 @@ def test_model(body: dict):
     if target == "system2":
         api_key = (eff_key(body.get("deep_api_key"), "deep_api_key")
                    or saved.get("api_key")
-                   or os.environ.get("NEUROIMMUNE_DEEP_API_KEY", "").strip()
-                   or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
-        base_url = (eff(body.get("deep_base_url"), "deep_base_url", "NEUROIMMUNE_DEEP_BASE_URL", "")
-                    or eff(body.get("base_url"), "base_url", "NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1"))
-        model = eff(body.get("deep_model"), "deep_model", "NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner")
+                   or os.environ.get("SOMA_DEEP_API_KEY", "").strip()
+                   or os.environ.get("SOMA_API_KEY", "").strip())
+        base_url = (eff(body.get("deep_base_url"), "deep_base_url", "SOMA_DEEP_BASE_URL", "")
+                    or eff(body.get("base_url"), "base_url", "SOMA_BASE_URL", "https://api.deepseek.com/v1"))
+        model = eff(body.get("deep_model"), "deep_model", "SOMA_DEEP_MODEL", "deepseek-reasoner")
     else:
         api_key = (eff_key(body.get("api_key"), "api_key")
-                   or os.environ.get("NEUROIMMUNE_API_KEY", "").strip())
-        base_url = eff(body.get("base_url"), "base_url", "NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1")
-        model = eff(body.get("model"), "model", "NEUROIMMUNE_MODEL", "deepseek-chat")
+                   or os.environ.get("SOMA_API_KEY", "").strip())
+        base_url = eff(body.get("base_url"), "base_url", "SOMA_BASE_URL", "https://api.deepseek.com/v1")
+        model = eff(body.get("model"), "model", "SOMA_MODEL", "deepseek-chat")
 
     if not api_key:
         return {"ok": False, "error": "未配置 API key（mock 模式无需测试）", "elapsed": 0}
@@ -594,7 +594,7 @@ def export_report(body: dict):
         media, ext, content = report.export_report(filters, fmt)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    filename = f"neuroimmune-report-{datetime.now().strftime('%Y%m%d-%H%M%S')}.{ext}"
+    filename = f"soma-report-{datetime.now().strftime('%Y%m%d-%H%M%S')}.{ext}"
     return Response(content, media_type=media,
                     headers={"Content-Disposition": f"attachment; filename={filename}"})
 
@@ -672,7 +672,7 @@ def info():
     ing = state.get_ingest_config()
     return {
         "syslog": {"bind": ing["syslog_bind"], "port": int(ing["syslog_port"])},
-        "model": m["model"] or os.environ.get("NEUROIMMUNE_MODEL", "deepseek-chat"),
-        "deep_model": m["deep_model"] or os.environ.get("NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner"),
+        "model": m["model"] or os.environ.get("SOMA_MODEL", "deepseek-chat"),
+        "deep_model": m["deep_model"] or os.environ.get("SOMA_DEEP_MODEL", "deepseek-reasoner"),
         "mode": state.get_model_mode(),
     }

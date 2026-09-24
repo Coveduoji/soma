@@ -26,7 +26,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def _jwt_secret() -> str:
-    env = os.environ.get("NEUROIMMUNE_JWT_SECRET", "").strip()
+    env = os.environ.get("SOMA_JWT_SECRET", "").strip()
     if env:
         return env
     if SECRET_PATH.exists():

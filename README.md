@@ -1,4 +1,4 @@
-# 神经免疫 · NeuroImmune
+# Soma
 
 一个把 **神经系统 + 免疫系统** 的隐喻映射到 **SOC 告警降噪与研判** 的工作台。
 
@@ -60,12 +60,12 @@ cd frontend && npm install && npm run dev
 ### 容器化部署（生产推荐）
 
 ```bash
-cp .env.example .env      # 填 NEUROIMMUNE_ADMIN_PASSWORD / NEUROIMMUNE_API_TOKEN
+cp .env.example .env      # 填 SOMA_ADMIN_PASSWORD / SOMA_API_TOKEN
 docker compose up -d --build
 ```
 
 - nginx 托管前端静态 + 反代 `/api`（默认 80 端口，HTTPS 见 `nginx.conf` 注释）。
-- 数据持久化在命名卷 `neuroimmune-data`；备份/恢复：`./scripts/backup.sh` / `./scripts/restore.sh`。
+- 数据持久化在命名卷 `soma-data`；备份/恢复：`./scripts/backup.sh` / `./scripts/restore.sh`。
 - 安全底线：未设管理员凭据时**拒绝启动**；`/api/ingest` 未配 token 时**拒绝接入**；syslog 默认只绑 `127.0.0.1`。
 
 ### 纯内网离线部署
@@ -83,10 +83,10 @@ docker compose up -d --build
 
 | 变量 | 说明 | 默认 |
 |---|---|---|
-| `NEUROIMMUNE_API_KEY` | 系统1 模型 key | 空 = mock |
-| `NEUROIMMUNE_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` |
-| `NEUROIMMUNE_MODEL` | 系统1 模型名 | `deepseek-chat` |
-| `NEUROIMMUNE_DEEP_MODEL` | 系统2（前额叶/深想）模型名 | `deepseek-reasoner` |
+| `SOMA_API_KEY` | 系统1 模型 key | 空 = mock |
+| `SOMA_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` |
+| `SOMA_MODEL` | 系统1 模型名 | `deepseek-chat` |
+| `SOMA_DEEP_MODEL` | 系统2（前额叶/深想）模型名 | `deepseek-reasoner` |
 
 ---
 

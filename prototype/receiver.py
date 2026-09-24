@@ -1,4 +1,4 @@
-"""24 小时 syslog 接收服务——把实时 syslog 喂进神经免疫管道。
+"""24 小时 syslog 接收服务——把实时 syslog 喂进Soma管道。
 
 UDP + TCP 双监听（默认 5514，可配），每条立即判：耐受 → 固有免疫 → 杏仁核 → 黑板；
 每 window 秒顶出一次 + 唤醒系统2 深想 + 写 history（夜里 consolidate.py 读它回写规则）。
@@ -186,9 +186,9 @@ def main() -> None:
     ap.add_argument("--max-events", type=int, default=500, help="黑板最多保留事件数")
     args = ap.parse_args()
 
-    port = args.port or int(os.environ.get("NEUROIMMUNE_SYSLOG_PORT", "5514"))
-    bind = args.bind or os.environ.get("NEUROIMMUNE_SYSLOG_BIND", "0.0.0.0")
-    window = args.window if args.window is not None else float(os.environ.get("NEUROIMMUNE_SYSLOG_WINDOW", "60"))
+    port = args.port or int(os.environ.get("SOMA_SYSLOG_PORT", "5514"))
+    bind = args.bind or os.environ.get("SOMA_SYSLOG_BIND", "0.0.0.0")
+    window = args.window if args.window is not None else float(os.environ.get("SOMA_SYSLOG_WINDOW", "60"))
 
     knob = config.get_knob(args.knob)
     client = get_client()

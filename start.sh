@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 一键启动「神经免疫」工作台：后端 FastAPI(:8000) + 前端 Vite dev(:5173)
+# 一键启动「Soma」工作台：后端 FastAPI(:8000) + 前端 Vite dev(:5173)
 #
 # 用法：
 #   ./start.sh                       # 启动（已在运行的服务自动复用，不重复起）
@@ -45,7 +45,7 @@ if is_up "http://127.0.0.1:${BACKEND_PORT}/api/health"; then
   echo "[backend] :${BACKEND_PORT} 已在运行，复用。"
 else
   echo "[backend] 启动 uvicorn :${BACKEND_PORT} …"
-  (cd backend && export NEUROIMMUNE_DEV=1 && alembic upgrade head && exec python3 -m uvicorn app.main:app --port "$BACKEND_PORT") > "$LOG_DIR/backend.log" 2>&1 &
+  (cd backend && export SOMA_DEV=1 && alembic upgrade head && exec python3 -m uvicorn app.main:app --port "$BACKEND_PORT") > "$LOG_DIR/backend.log" 2>&1 &
   STARTED_PIDS+=("$!")
 fi
 

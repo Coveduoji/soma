@@ -1,6 +1,6 @@
 """数据目录统一解析——所有持久化文件（DB / JSON 状态 / 密钥 / 记忆 / 反馈）挂到同一数据目录。
 
-用环境变量 `NEUROIMMUNE_DATA_DIR` 可整体迁走（容器内挂卷到 /data，本地默认回落 backend/）。
+用环境变量 `SOMA_DATA_DIR` 可整体迁走（容器内挂卷到 /data，本地默认回落 backend/）。
 该变量须在进程启动前就绪（Docker 环境变量 / shell export），不读 .env。
 """
 from __future__ import annotations
@@ -12,13 +12,13 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 def data_dir() -> Path:
-    env = os.environ.get("NEUROIMMUNE_DATA_DIR", "").strip()
+    env = os.environ.get("SOMA_DATA_DIR", "").strip()
     d = Path(env).expanduser() if env else _BACKEND_DIR
     d.mkdir(parents=True, exist_ok=True)
     return d
 
 
-DB_PATH = data_dir() / "neuroimmune.db"
+DB_PATH = data_dir() / "soma.db"
 SECRET_PATH = data_dir() / "secret.key"
 
 KNOB_PATH = data_dir() / "knob.json"

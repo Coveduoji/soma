@@ -24,7 +24,7 @@ TOLERANCE = os.path.join(DATA, "tolerance.json")
 OUT = os.path.join(os.path.dirname(__file__), "report.html")
 OUT_FRAGMENT = os.path.join(os.path.dirname(__file__), "report.fragment.html")
 
-TITLE = "神经免疫路由观测"
+TITLE = "Soma路由观测"
 
 
 def _esc(s) -> str:
@@ -454,7 +454,7 @@ def build() -> str:
     body = f"""
 <div class="wrap">
   <header class="masthead">
-    <div class="eyebrow">神经免疫 · 路由观测（不是告警大屏）</div>
+    <div class="eyebrow">Soma · 路由观测（不是告警大屏）</div>
     <h1>贵模型只醒了 {c["wake"]} 个案件</h1>
     <p class="sub">这页只讲三件事：<b>省</b>（把分析师从告警海里筛出来）、<b>学</b>（耐受与固有免疫记下了什么）、<b>调</b>（风险旋钮拨到哪一档）。</p>
     <div class="meta">

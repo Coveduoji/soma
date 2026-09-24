@@ -15,9 +15,9 @@ from pathlib import Path
 
 from signature import signature
 
-# 路径：NEUROIMMUNE_DATA_DIR 设置时规则进数据卷（与 memory/feedback 同级，Docker 下重启不丢），
+# 路径：SOMA_DATA_DIR 设置时规则进数据卷（与 memory/feedback 同级，Docker 下重启不丢），
 # 否则回落 prototype/data/（prototype 零依赖独立可跑）。
-_data_dir = os.environ.get("NEUROIMMUNE_DATA_DIR", "").strip()
+_data_dir = os.environ.get("SOMA_DATA_DIR", "").strip()
 if _data_dir:
     _DIR = Path(_data_dir).expanduser() / "data"
 else:

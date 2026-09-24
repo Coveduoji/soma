@@ -6,7 +6,7 @@ export const http = axios.create({ baseURL: BASE });
 
 // 请求拦截：统一挂 Bearer token。
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('neuroimmune_jwt');
+  const token = localStorage.getItem('soma_jwt');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -21,7 +21,7 @@ http.interceptors.response.use(
   (r) => r,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('neuroimmune_jwt');
+      localStorage.removeItem('soma_jwt');
       unauthorizedHandler?.();
     }
     return Promise.reject(error);

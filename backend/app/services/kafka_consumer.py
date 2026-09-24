@@ -106,10 +106,10 @@ def replay_dead_letter() -> dict:
 def config() -> dict:
     """读 Kafka 连接配置（环境变量，连外部已有 Kafka 只需改这里）。"""
     return {
-        "servers": os.environ.get("NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS", "").strip(),
-        "topic": os.environ.get("NEUROIMMUNE_KAFKA_TOPIC", "").strip(),
-        "group": os.environ.get("NEUROIMMUNE_KAFKA_GROUP", "neuroimmune").strip(),
-        "auto_offset_reset": os.environ.get("NEUROIMMUNE_KAFKA_AUTO_OFFSET_RESET", "earliest").strip(),
+        "servers": os.environ.get("SOMA_KAFKA_BOOTSTRAP_SERVERS", "").strip(),
+        "topic": os.environ.get("SOMA_KAFKA_TOPIC", "").strip(),
+        "group": os.environ.get("SOMA_KAFKA_GROUP", "soma").strip(),
+        "auto_offset_reset": os.environ.get("SOMA_KAFKA_AUTO_OFFSET_RESET", "earliest").strip(),
     }
 
 
@@ -128,7 +128,7 @@ def start() -> None:
     global _enabled, _consumer_thread
     cfg = config()
     if not cfg["servers"] or not cfg["topic"]:
-        logger.info("未配置 Kafka（NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS / NEUROIMMUNE_KAFKA_TOPIC），跳过 Kafka 消费")
+        logger.info("未配置 Kafka（SOMA_KAFKA_BOOTSTRAP_SERVERS / SOMA_KAFKA_TOPIC），跳过 Kafka 消费")
         return
 
     # 复用 syslog 解析器的来源/解析配置（数据目录播种 + 路径注入），与 syslog 直收一致。

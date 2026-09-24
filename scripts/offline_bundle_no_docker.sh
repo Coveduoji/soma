@@ -4,12 +4,12 @@
 # 用法：./scripts/offline_bundle_no_docker.sh [输出目录，默认 ./dist-offline-nodocker]
 #       PY_TARGET=3.12 PLATFORM=manylinux2014_aarch64 ./scripts/offline_bundle_no_docker.sh   # 覆盖目标 Python/架构
 #
-# 产出（目录结构 = 内网机 /opt/neuroimmune 应放的结构）：
+# 产出（目录结构 = 内网机 /opt/soma 应放的结构）：
 #   wheels/                后端全部依赖的 wheel 包（与内网机同 Python/OS/架构）
 #   backend/  prototype/   源码（已剔除本机 DB/密钥/缓存）
 #   frontend/dist/         前端静态产物（后端直接托管，无需 nginx）
-#   deploy/neuroimmune.service         systemd 常驻单元
-#   deploy/neuroimmune.env.example     环境变量模板
+#   deploy/soma.service         systemd 常驻单元
+#   deploy/soma.env.example     环境变量模板
 #
 # 内网机部署见 README「纯内网离线部署（无 Docker）」。
 set -euo pipefail
@@ -47,17 +47,17 @@ rm -f "$OUT_DIR"/backend/*.db "$OUT_DIR"/backend/*.sqlite "$OUT_DIR"/backend/sec
 rm -f "$OUT_DIR"/prototype/data/tolerance.json "$OUT_DIR"/prototype/data/innate_rules.json \
       "$OUT_DIR"/prototype/data/memory.jsonl "$OUT_DIR"/prototype/data/history.jsonl \
       "$OUT_DIR"/prototype/data/last_run.json 2>/dev/null || true
-# 剔除开发机的 .env（含真实 key），内网模型配置改在 /etc/neuroimmune.env 里给
+# 剔除开发机的 .env（含真实 key），内网模型配置改在 /etc/soma.env 里给
 rm -f "$OUT_DIR"/prototype/.env "$OUT_DIR"/backend/.env 2>/dev/null || true
 
 echo "=== 4/4 拷贝部署文件 ==="
 mkdir -p "$OUT_DIR/deploy"
-cp deploy/neuroimmune.service "$OUT_DIR/deploy/" 2>/dev/null || true
-cp deploy/neuroimmune.env.example "$OUT_DIR/deploy/" 2>/dev/null || true
+cp deploy/soma.service "$OUT_DIR/deploy/" 2>/dev/null || true
+cp deploy/soma.env.example "$OUT_DIR/deploy/" 2>/dev/null || true
 
 echo
 echo "打包完成：$OUT_DIR/"
 echo "内网机三步："
-echo "  1) 拷目录到 /opt/neuroimmune"
-echo "  2) python3.11 -m venv /opt/neuroimmune/venv && /opt/neuroimmune/venv/bin/pip install --no-index --find-links wheels -r backend/requirements.txt"
-echo "  3) 按 deploy/neuroimmune.env.example 填 /etc/neuroimmune.env，再 systemctl enable --now neuroimmune"
+echo "  1) 拷目录到 /opt/soma"
+echo "  2) python3.11 -m venv /opt/soma/venv && /opt/soma/venv/bin/pip install --no-index --find-links wheels -r backend/requirements.txt"
+echo "  3) 按 deploy/soma.env.example 填 /etc/soma.env，再 systemctl enable --now soma"

@@ -1,4 +1,4 @@
-# 神经免疫 · 最小闭环原型
+# Soma · 最小闭环原型
 
 README 3.2 节的最小闭环：**杏仁核 + 一块黑板**。先解决告警疲劳和工具烟囱两个最痛的问题，不推翻任何现有投资。
 
@@ -40,9 +40,9 @@ python3 main.py --knob 战时            # 换风险旋钮：宽松 / 正常 / �
 
 ```bash
 # prototype/.env 里，把 key 填进去即可：
-NEUROIMMUNE_API_KEY=sk-xxx          # DeepSeek 的 key
-NEUROIMMUNE_BASE_URL=https://api.deepseek.com/v1
-NEUROIMMUNE_MODEL=deepseek-chat
+SOMA_API_KEY=sk-xxx          # DeepSeek 的 key
+SOMA_BASE_URL=https://api.deepseek.com/v1
+SOMA_MODEL=deepseek-chat
 ```
 
 `.env` 里还留了另外两组注释掉的备选：OpenRouter 免费开源模型、本地 Ollama，取消注释换一下即可。
@@ -73,7 +73,7 @@ NEUROIMMUNE_MODEL=deepseek-chat
 
 杏仁核（便宜模型 `deepseek-chat`）先定性分级；只有越过黑板顶出线、且**预算没花完**的信号，才唤醒前额叶（贵模型 `deepseek-reasoner`）做深度分析。预算随风险旋钮走：宽松 1 / 正常 2 / 保守 3 / 战时 99（次/轮）。这就是「告警降噪」——贵模型醒在「那一条」上，不醒在九千九百九十九条上。
 
-前额叶 的 `analyze()` 走 `llm.py` 同一个 OpenAI 兼容客户端，深想模型在 `.env` 里配 `NEUROIMMUNE_DEEP_MODEL`（不想花推理模型的钱就换成 `deepseek-chat`）。
+前额叶 的 `analyze()` 走 `llm.py` 同一个 OpenAI 兼容客户端，深想模型在 `.env` 里配 `SOMA_DEEP_MODEL`（不想花推理模型的钱就换成 `deepseek-chat`）。
 
 ## 免疫耐受回写（已做）
 
@@ -114,7 +114,7 @@ python3 receiver.py --port 5514 --knob 保守 --window 30
 
 常驻服务，Ctrl+C 退出。UDP + TCP 双监听，每条立即判（耐受 → 固有免疫 → 杏仁核 → 黑板），
 每 window 秒顶出一次 + 唤醒前额叶 深想 + 写 `history.jsonl`（夜里 `consolidate.py` 读它回写规则）。
-端口/绑定/窗口也可用环境变量 `NEUROIMMUNE_SYSLOG_PORT/BIND/WINDOW` 配（见 `.env`）。
+端口/绑定/窗口也可用环境变量 `SOMA_SYSLOG_PORT/BIND/WINDOW` 配（见 `.env`）。
 
 **测试**（另开一个终端）：
 
@@ -123,7 +123,7 @@ logger -n 127.0.0.1 -P 5514 "svc_backup 服务账号凌晨登录 payroll-db-05" 
 echo '<34>1 2026-08-14T03:14:07Z web-01 auth 123 - - Failed password' | nc 127.0.0.1 5514  # TCP
 ```
 
-**接 rsyslog 转发**：在 `/etc/rsyslog.d/99-neuroimmune.conf` 加一行 `*.* @127.0.0.1:5514`（UDP）或 `*.* @@127.0.0.1:5514`（TCP），重启 rsyslog。
+**接 rsyslog 转发**：在 `/etc/rsyslog.d/99-soma.conf` 加一行 `*.* @127.0.0.1:5514`（UDP）或 `*.* @@127.0.0.1:5514`（TCP），重启 rsyslog。
 
 **字段映射**（syslog → 信号）：
 

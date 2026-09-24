@@ -107,7 +107,7 @@ def build_report(filters: dict | None = None) -> dict:
     denoise = round((total - len(escalated)) / total * 100, 1) if total else 0.0
 
     report = {
-        "title": "神经免疫安全报告",
+        "title": "Soma安全报告",
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "time_range_label": _range_label(start, end),
         "filters": {k: v for k, v in filters.items() if v},
@@ -343,7 +343,7 @@ def render_html(report: dict) -> str:
         f'<h2>全部案件（{len(report["cases"])}）</h2><div class="card"><table>'
         f'<thead><tr><th>案件</th><th>强度</th><th>告警数</th><th>状态</th><th>定性</th></tr></thead><tbody>{case_rows}</tbody></table></div>'
         f'<h2>附录</h2><div class="card meta">筛选条件：{_esc(json.dumps(report["filters"], ensure_ascii=False) or "无")}<br>'
-        f'本报告由神经免疫防御系统自动生成，图表为降噪漏斗、来源分布、小时分布、案件强度分布。</div>'
+        f'本报告由Soma防御系统自动生成，图表为降噪漏斗、来源分布、小时分布、案件强度分布。</div>'
         f'</div></body></html>'
     )
 
@@ -384,7 +384,7 @@ def render_markdown(report: dict) -> str:
     ]
     for c in report["cases"]:
         lines.append(f"| `{c['correlation_uid'][:8]}` | {c['strength']:.2f} | {c['alerts']} | {c['status']} | {c['verdict'] or '—'} |")
-    lines += ["", "---", "", "*本报告由神经免疫防御系统自动生成。*"]
+    lines += ["", "---", "", "*本报告由Soma防御系统自动生成。*"]
     return "\n".join(lines)
 
 
@@ -443,7 +443,7 @@ def render_docx(report: dict) -> bytes:
 
     doc.add_heading("附录", level=1)
     doc.add_paragraph(f"筛选条件：{json.dumps(report['filters'], ensure_ascii=False) or '无'}")
-    doc.add_paragraph("本报告由神经免疫防御系统自动生成。")
+    doc.add_paragraph("本报告由Soma防御系统自动生成。")
 
     buf = io.BytesIO()
     doc.save(buf)

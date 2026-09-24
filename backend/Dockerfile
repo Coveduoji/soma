@@ -24,7 +24,7 @@ RUN useradd --create-home --uid 10001 appuser
 # 数据目录（SQLite / JSON 状态 / secret.key 等），用卷挂载持久化。
 # 必须在 USER appuser 之前建好并 chown：否则命名卷挂载后 /data 属 root，
 # 非 root 的 appuser 写不进，SQLite 无法创建（unable to open database file）。
-ENV NEUROIMMUNE_DATA_DIR=/data
+ENV SOMA_DATA_DIR=/data
 RUN mkdir -p /data && chown appuser:appuser /data
 
 USER appuser

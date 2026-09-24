@@ -90,7 +90,7 @@ export default function MainLayout() {
             fontWeight: 700, fontSize: collapsed ? 16 : 15, whiteSpace: 'nowrap', overflow: 'hidden',
           }}
         >
-          {collapsed ? '🧠' : '🧠 神经免疫'}
+          {collapsed ? '🧠' : '🧠 Soma'}
         </div>
         <Menu
           theme="dark" mode="inline" selectedKeys={[selected]} items={menuItems}

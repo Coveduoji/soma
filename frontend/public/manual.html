@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>神经免疫用户手册</title>
+<title>Soma用户手册</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -271,7 +271,7 @@
 <div class="masthead">
   <div class="masthead-inner">
     <p class="eyebrow">SOC 告警降噪与研判工作台</p>
-    <h1>神经免疫 · 用户手册 <span class="en">NeuroImmune</span></h1>
+    <h1>Soma · 用户手册</h1>
     <p class="lede">用「神经系统 + 免疫系统」的隐喻，把海量安全告警层层压缩成少数需要人工研判的案件，并随使用越用越准。</p>
   </div>
 </div>
@@ -327,11 +327,11 @@
       <pre><code>cd backend &amp;&amp; python3 -m uvicorn app:app --port 8000     # 后端
 cd frontend &amp;&amp; npm install &amp;&amp; npm run dev          # 前端（另开终端）</code></pre>
       <h3>容器化部署（生产推荐）</h3>
-      <pre><code>cp .env.example .env    # 填 NEUROIMMUNE_ADMIN_PASSWORD / NEUROIMMUNE_API_TOKEN
+      <pre><code>cp .env.example .env    # 填 SOMA_ADMIN_PASSWORD / SOMA_API_TOKEN
 docker compose up -d --build</code></pre>
       <ul>
         <li>nginx 托管前端静态 + 反代 <code>/api</code>（默认 80 端口，HTTPS 见 <code>nginx.conf</code>）。</li>
-        <li>数据持久化在命名卷 <code>neuroimmune-data</code>。</li>
+        <li>数据持久化在命名卷 <code>soma-data</code>。</li>
         <li>内置 <code>kafka</code> + <code>filebeat</code> 服务：Filebeat 采集本机日志目录 → Kafka → 后端消费（见「五、数据接入 → Filebeat」）。</li>
         <li>备份/恢复 <code>./scripts/backup.sh</code> / <code>./scripts/restore.sh</code>。</li>
         <li><strong>安全底线</strong>：未设管理员凭据时拒绝启动；<code>/api/ingest</code> 未配 token 时拒绝接入；syslog 默认只绑 <code>127.0.0.1</code>。</li>
@@ -545,7 +545,7 @@ docker compose up -d --build</code></pre>
         <li>文件命名约定：<code>&lt;类型&gt;-YYYY-MM-DD-HH.log</code>（如 <code>ips-2026-09-20-18.log</code>、<code>webids-…</code>、<code>waf-…</code>、<code>hids-…</code>）。</li>
         <li>来源识别靠 Filebeat 的 <code>fields.source</code>（<code>tianyan / waf / hids</code>）映射到「天眼 / WAF / HIDS」，再走对应解析规则。</li>
         <li>日志目录挂载：<code>docker-compose.yml</code> 里 <code>TIANYAN_LOG_DIR / WAF_LOG_DIR / HIDS_LOG_DIR</code>，改路径在 <code>.env</code> 设这三个变量。</li>
-        <li>Kafka 连接：<code>NEUROIMMUNE_KAFKA_BOOTSTRAP_SERVERS</code>（默认 <code>kafka:9092</code>）、<code>NEUROIMMUNE_KAFKA_TOPIC</code>（默认 <code>neuroimmune-logs</code>）。</li>
+        <li>Kafka 连接：<code>SOMA_KAFKA_BOOTSTRAP_SERVERS</code>（默认 <code>kafka:9092</code>）、<code>SOMA_KAFKA_TOPIC</code>（默认 <code>soma-logs</code>）。</li>
       </ul>
     </section>
 
@@ -680,7 +680,7 @@ docker compose up -d --build</code></pre>
       <p><strong>健康状态</strong>：设置 → 健康状态，查看 DB 规模、syslog 监听（UDP/TCP/worker 存活）、当前旋钮、模型模式、最近入库时间。</p>
       <p><strong>夜间巩固</strong>：定时（默认 6 小时）把当天案件蒸馏成检索记忆，供系统2 研判检索。可在「设置 → 立即夜间巩固」手动触发。</p>
       <div class="warn"><strong>注意</strong>：夜间巩固只固化「检索记忆」，<strong>不回写免疫规则</strong>——规则只由分析师「标记真阳性」写入，避免未确认的误报被永久写进黑名单。</div>
-      <p><strong>备份/恢复</strong>：<code>./scripts/backup.sh</code> / <code>./scripts/restore.sh</code>。数据集中在数据目录，Docker 下挂载在命名卷 <code>neuroimmune-data</code>。</p>
+      <p><strong>备份/恢复</strong>：<code>./scripts/backup.sh</code> / <code>./scripts/restore.sh</code>。数据集中在数据目录，Docker 下挂载在命名卷 <code>soma-data</code>。</p>
       <p><strong>保留策略</strong>：告警超期（默认 30 天）先归档到 <code>archive/</code> 再删除；案件/报告保留更久（默认 180 天）。</p>
     </section>
 
@@ -723,7 +723,7 @@ docker compose up -d --build</code></pre>
       </ul>
 
       <p class="q">Q10：两个模型（系统1 + 系统2）是两个不同的 key，怎么配？</p>
-      <p>系统1 用 <code>NEUROIMMUNE_API_KEY</code>，系统2 用 <code>NEUROIMMUNE_DEEP_API_KEY</code>。<code>.env.example</code> 里省略了系统2 的 key（靠回退到系统1），所以<strong>两个不同 key 时必须显式加</strong> <code>NEUROIMMUNE_DEEP_API_KEY</code>；或在前端「模型接入」页的「前额叶（系统2）」段单独填 API key。</p>
+      <p>系统1 用 <code>SOMA_API_KEY</code>，系统2 用 <code>SOMA_DEEP_API_KEY</code>。<code>.env.example</code> 里省略了系统2 的 key（靠回退到系统1），所以<strong>两个不同 key 时必须显式加</strong> <code>SOMA_DEEP_API_KEY</code>；或在前端「模型接入」页的「前额叶（系统2）」段单独填 API key。</p>
 
       <p class="q">Q11：设备日志偶尔丢最后几行 / 采不全？</p>
       <p>设备若用 <strong>rename 式 logrotate</strong>（改名 <code>.log</code> → <code>.log-YYYYMMDD</code>），Filebeat 只尾随 <code>*.log</code>，改名后设备若还在写旧文件，最后几行会时有时无地丢（竞态）。建议 logrotate 改用 <code>copytruncate</code>（原地截断、路径不变），或保证设备在轮转前就切到新文件。</p>

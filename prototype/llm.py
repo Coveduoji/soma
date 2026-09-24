@@ -6,7 +6,7 @@
 - analyze()：系统2 用，输出自由文本的深度分析
 
 默认 MockClient：零 key、零网络也能跑通整个闭环；
-设了 NEUROIMMUNE_API_KEY 就切到 OpenAI 兼容的开源模型 API。
+设了 SOMA_API_KEY 就切到 OpenAI 兼容的开源模型 API。
 """
 from __future__ import annotations
 
@@ -217,14 +217,14 @@ def load_dotenv(path: str | None = None) -> None:
 def get_client() -> ModelClient:
     """系统1（便宜模型）：先读 prototype/.env 再选后端；没设 key 就退回 mock。"""
     load_dotenv()
-    if os.environ.get("NEUROIMMUNE_MOCK") == "1":
+    if os.environ.get("SOMA_MOCK") == "1":
         return MockClient()
-    key = os.environ.get("NEUROIMMUNE_API_KEY", "").strip()
+    key = os.environ.get("SOMA_API_KEY", "").strip()
     if key:
         return OpenAICompatClient(
-            base_url=os.environ.get("NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1"),
+            base_url=os.environ.get("SOMA_BASE_URL", "https://api.deepseek.com/v1"),
             api_key=key,
-            model=os.environ.get("NEUROIMMUNE_MODEL", "deepseek-chat"),
+            model=os.environ.get("SOMA_MODEL", "deepseek-chat"),
         )
     return MockClient()
 
@@ -232,16 +232,16 @@ def get_client() -> ModelClient:
 def get_deep_client() -> ModelClient:
     """系统2（贵模型）：默认 deepseek-reasoner，可被 .env 覆盖。没 key 时退回 mock。"""
     load_dotenv()
-    if os.environ.get("NEUROIMMUNE_MOCK") == "1":
+    if os.environ.get("SOMA_MOCK") == "1":
         return MockClient()
-    key = (os.environ.get("NEUROIMMUNE_DEEP_API_KEY")
-           or os.environ.get("NEUROIMMUNE_API_KEY", "")).strip()
+    key = (os.environ.get("SOMA_DEEP_API_KEY")
+           or os.environ.get("SOMA_API_KEY", "")).strip()
     if key:
         return OpenAICompatClient(
-            base_url=os.environ.get("NEUROIMMUNE_DEEP_BASE_URL")
-            or os.environ.get("NEUROIMMUNE_BASE_URL", "https://api.deepseek.com/v1"),
+            base_url=os.environ.get("SOMA_DEEP_BASE_URL")
+            or os.environ.get("SOMA_BASE_URL", "https://api.deepseek.com/v1"),
             api_key=key,
-            model=os.environ.get("NEUROIMMUNE_DEEP_MODEL", "deepseek-reasoner"),
+            model=os.environ.get("SOMA_DEEP_MODEL", "deepseek-reasoner"),
             temperature=None,  # 推理模型不支持 temperature
         )
     return MockClient()
