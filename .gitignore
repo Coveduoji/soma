@@ -5,6 +5,11 @@
 session-transcript-*.jsonl
 backend/secret.key
 
+# === 涉敏文档（本地保留，不入库）===
+天眼探针syslog格式说明.md
+天眼探针syslog格式说明.pdf
+明御WAF-syslog格式整理.md
+
 # === 运行时数据库 / 数据 ===
 *.db
 *.db-shm
