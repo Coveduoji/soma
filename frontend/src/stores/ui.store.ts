@@ -13,7 +13,7 @@ interface UiState {
   setDarkMode: (d: boolean) => void;
 }
 
-const initialTerm = (): TermMode => (localStorage.getItem(TERM_KEY) === 'sec' ? 'sec' : 'bio');
+const initialTerm = (): TermMode => (localStorage.getItem(TERM_KEY) === 'bio' ? 'bio' : 'sec');
 const initialDark = (): boolean => localStorage.getItem(THEME_KEY) === 'dark';
 
 export const useUiStore = create<UiState>((set) => ({
