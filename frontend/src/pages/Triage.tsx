@@ -100,7 +100,7 @@ export default function Triage() {
     <div>
       <Flex justify="space-between" align="center" style={{ marginBottom: 16 }} wrap gap={12}>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          {t('triage')} <Typography.Text type="secondary" style={{ fontSize: 14 }}>{total} 个案件 · 按强度排序</Typography.Text>
+          {t('triage')} <Typography.Text type="secondary" style={{ fontSize: 14 }}>{total} 个案件 · 按风险排序</Typography.Text>
         </Typography.Title>
         <Space wrap>
           <Input.Search

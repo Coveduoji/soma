@@ -7,7 +7,7 @@ import type {
 
 export const configApi = {
   presets: async () =>
-    (await http.get<Record<string, { suppress_below: number; escalate_above: number; budget: number }>>('/presets')).data,
+    (await http.get<Record<string, { suppress_below: number; budget: number }>>('/presets')).data,
   updatePreset: async (name: string, body: object) => (await http.put(`/presets/${name}`, body)).data,
   freq: async () => (await http.get<FreqConfig>('/freq')).data,
   setFreq: async (body: object) => (await http.put<FreqConfig>('/freq', body)).data,

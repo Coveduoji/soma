@@ -72,8 +72,8 @@ export interface GraphData {
 
 export interface DashboardData {
   counts: { alerts: number; surfaced: number; suppressed: number; artifacts: number; cases: number; reports: number; attack_chains: number; audit: number };
-  knob: { name: string; suppress_below: number; escalate_above: number; budget: number };
-  presets: Record<string, { suppress_below: number; escalate_above: number; budget: number }>;
+  knob: { name: string; suppress_below: number; budget: number };
+  presets: Record<string, { suppress_below: number; budget: number }>;
   tolerance: string[];
   innate: string[];
 }
@@ -155,6 +155,7 @@ export interface DetectionConfig {
   rag_limit: number;
   innate_conf: number;
   restore_conf: number;
+  risk_threshold: number;
   tolerance_ttl_days: number;
   mock_indicators: [string, number][];
   mock_no_hit: number;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Button, Input, InputNumber, Select, Table, Tabs, Typography, Space, Tag, App, Modal } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
+import HelpTip from '../components/HelpTip';
 import { configApi } from '../api/config';
 import { dashboardApi } from '../api/dashboard';
 import ConfidenceChart from '../components/ConfidenceChart';
@@ -10,7 +11,7 @@ import type {
   SourcesConfig, WebhookConfig, SourceStatus, ParsersConfig, ParserRule, AssetItem,
 } from '../types/models';
 
-interface PresetVals { suppress_below: number; escalate_above: number; budget: number; }
+interface PresetVals { suppress_below: number; budget: number; }
 
 const ALL_FIELDS = ['correlation_uid', 'title', 'strength', 'status', 'verdict', 'entities', 'ips', 'alerts',
   'report.verdict', 'report.confidence', 'report.digest', 'report.attack_chain', 'report.iocs', 'report.remediations', 'report.unknowns'];
@@ -23,6 +24,11 @@ const FIELD_GROUPS: [string, [string, string][]][] = [
 ];
 
 const SOURCE_SECTIONS = ['facility', 'hostname', 'tag', 'ip'] as const;
+
+// 参数标签 + 小问号说明（悬停看含义与调参效果）
+const label = (text: string, tip: string) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>{text}<HelpTip text={tip} /></span>
+);
 
 function KeyValueMap({ entries, onChange, keyPh, valPh }: {
   entries: [string, string][];
@@ -77,7 +83,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchText, setBatchText] = useState('');
-  const [calib, setCalib] = useState<{ buckets: any[]; thresholds: { suppress_below: number; escalate_above: number }; sources: string[] } | null>(null);
+  const [calib, setCalib] = useState<{ buckets: any[]; thresholds: { suppress_below: number }; sources: string[] } | null>(null);
   const [calibSource, setCalibSource] = useState('');
 
   const load = async () => {
@@ -287,19 +293,13 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
         columns={[
           { title: '档位', dataIndex: 'name', render: (v: string) => <b>{v}</b> },
           {
-            title: '抑制线', dataIndex: 'suppress_below',
+            title: label('抑制线', '置信度低于此值的告警被静默（不上板）。调低=更敏感、误报更多；调高=更安静、可能漏报。'), dataIndex: 'suppress_below',
             render: (_: number, r: any) => (
               <InputNumber size="small" step={0.05} value={r.suppress_below} onChange={(v) => setEdits((s) => ({ ...s, [r.name]: { ...(s[r.name] || presets![r.name]), suppress_below: v ?? 0 } }))} />
             ),
           },
           {
-            title: '顶出线', dataIndex: 'escalate_above',
-            render: (_: number, r: any) => (
-              <InputNumber size="small" step={0.05} value={r.escalate_above} onChange={(v) => setEdits((s) => ({ ...s, [r.name]: { ...(s[r.name] || presets![r.name]), escalate_above: v ?? 0 } }))} />
-            ),
-          },
-          {
-            title: '预算', dataIndex: 'budget',
+            title: label('预算', '预算窗口内最多唤醒系统2（前额叶深想）的案件数。调高=深想更勤、更贵；调低=更省。'), dataIndex: 'budget',
             render: (_: number, r: any) => (
               <InputNumber size="small" value={r.budget} onChange={(v) => setEdits((s) => ({ ...s, [r.name]: { ...(s[r.name] || presets![r.name]), budget: v ?? 0 } }))} />
             ),
@@ -311,7 +311,7 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
         ]}
       />
 
-      <Typography.Text strong style={{ display: 'block', margin: '12px 0 8px' }}>置信度校准（据此调抑制线/顶出线）</Typography.Text>
+      <Typography.Text strong style={{ display: 'block', margin: '12px 0 8px' }}>置信度校准（据此调抑制线）</Typography.Text>
       <Space style={{ marginBottom: 8 }}>
         <Select
           value={calibSource}
@@ -351,8 +351,8 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
             </Space>
           </div>
           <Space wrap>
-            <InputNumber addonBefore="temperature" step={0.1} value={model.temperature} onChange={(v) => setModel({ ...model, temperature: v ?? 0 })} />
-            <InputNumber addonBefore="超时（秒）" value={model.timeout} onChange={(v) => setModel({ ...model, timeout: v ?? 120 })} />
+            <InputNumber addonBefore={label('temperature', '模型采样温度，0 = 确定性输出。')} step={0.1} value={model.temperature} onChange={(v) => setModel({ ...model, temperature: v ?? 0 })} />
+            <InputNumber addonBefore={label('超时（秒）', '模型调用超时秒数。')} value={model.timeout} onChange={(v) => setModel({ ...model, timeout: v ?? 120 })} />
             <Button type="primary" onClick={() => save(async () => { setModel(await configApi.setModel(model)); }, '已保存模型接入')}>保存</Button>
           </Space>
         </Space>
@@ -365,9 +365,9 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
       <Typography.Paragraph type="secondary">时间窗外历史同类型告警极多 → 判为业务误报并降级置信度（防刷屏误报）。</Typography.Paragraph>
       {freq && (
         <Space wrap>
-          <InputNumber addonBefore="时间窗（秒）" value={freq.window} onChange={(v) => setFreq({ ...freq, window: v ?? 0 })} />
-          <InputNumber addonBefore="频次阈值（次）" value={freq.threshold} onChange={(v) => setFreq({ ...freq, threshold: v ?? 0 })} />
-          <InputNumber addonBefore="置信度折扣（0~1）" step={0.05} value={freq.demote} onChange={(v) => setFreq({ ...freq, demote: v ?? 0 })} />
+          <InputNumber addonBefore={label('时间窗（秒）', '统计历史同类型告警的时间窗口（秒）。')} value={freq.window} onChange={(v) => setFreq({ ...freq, window: v ?? 0 })} />
+          <InputNumber addonBefore={label('频次阈值（次）', '窗口内同类型告警超过此数即判为业务误报。')} value={freq.threshold} onChange={(v) => setFreq({ ...freq, threshold: v ?? 0 })} />
+          <InputNumber addonBefore={label('置信度折扣（0~1）', '被判定为频率误报后，置信度乘以此折扣。')} step={0.05} value={freq.demote} onChange={(v) => setFreq({ ...freq, demote: v ?? 0 })} />
           <Button type="primary" onClick={() => save(async () => { setFreq(await configApi.setFreq(freq)); }, '已保存频率降级')}>保存</Button>
         </Space>
       )}
@@ -379,8 +379,8 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
       <Typography.Paragraph type="secondary">单信号案件默认不唤醒前额叶（除非置信度 ≥ 地板值）；预算窗口内最多唤醒「预算」个不同案件。</Typography.Paragraph>
       {gating && (
         <Space wrap>
-          <InputNumber addonBefore="单信号地板值（0~1）" step={0.01} value={gating.single_signal_floor} onChange={(v) => setGating({ ...gating, single_signal_floor: v ?? 0 })} />
-          <InputNumber addonBefore="预算窗口（秒）" value={gating.budget_window} onChange={(v) => setGating({ ...gating, budget_window: v ?? 0 })} />
+          <InputNumber addonBefore={label('单信号地板值（0~1）', '单条告警的案件，置信度 ≥ 此值才唤醒系统2；否则等拼链。')} step={0.01} value={gating.single_signal_floor} onChange={(v) => setGating({ ...gating, single_signal_floor: v ?? 0 })} />
+          <InputNumber addonBefore={label('预算窗口（秒）', '预算计数的滑动窗口（秒）。')} value={gating.budget_window} onChange={(v) => setGating({ ...gating, budget_window: v ?? 0 })} />
           <Button type="primary" onClick={() => save(async () => { setGating(await configApi.setGating(gating)); }, '已保存前额叶 唤醒门槛')}>保存</Button>
         </Space>
       )}
@@ -393,13 +393,14 @@ export default function AdvancedSettings({ onBack }: { onBack: () => void }) {
       {detection && (
         <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <Space wrap>
-            <InputNumber addonBefore="链加成" step={0.05} value={detection.chain_bonus} onChange={(v) => setDetection({ ...detection, chain_bonus: v ?? 0 })} />
-            <InputNumber addonBefore="封顶" step={0.05} value={detection.chain_cap} onChange={(v) => setDetection({ ...detection, chain_cap: v ?? 0 })} />
-            <InputNumber addonBefore="重分析阈值（条）" value={detection.grew} onChange={(v) => setDetection({ ...detection, grew: v ?? 0 })} />
-            <InputNumber addonBefore="RAG 条数" value={detection.rag_limit} onChange={(v) => setDetection({ ...detection, rag_limit: v ?? 0 })} />
-            <InputNumber addonBefore="固有免疫 conf" step={0.05} value={detection.innate_conf} onChange={(v) => setDetection({ ...detection, innate_conf: v ?? 0 })} />
-            <InputNumber addonBefore="放回 conf" step={0.05} value={detection.restore_conf} onChange={(v) => setDetection({ ...detection, restore_conf: v ?? 0 })} />
-            <InputNumber addonBefore="白名单 TTL（天）" value={detection.tolerance_ttl_days} onChange={(v) => setDetection({ ...detection, tolerance_ttl_days: v ?? 0 })} />
+            <InputNumber addonBefore={label('链加成', '案件每多一条告警，案件强度增加的幅度。调高=长攻击链强度涨得更快。')} step={0.05} value={detection.chain_bonus} onChange={(v) => setDetection({ ...detection, chain_bonus: v ?? 0 })} />
+            <InputNumber addonBefore={label('封顶', '链加成的上限，防止长链把强度顶到离谱。')} step={0.05} value={detection.chain_cap} onChange={(v) => setDetection({ ...detection, chain_cap: v ?? 0 })} />
+            <InputNumber addonBefore={label('风险阈值', '案件风险分 ≥ 此值才考虑顶出（唤醒系统2 深想）。风险分 = 资产价值 × 攻击得逞 × 危害。调低=更容易顶出深想（更贵）；调高=更省、可能漏深析。')} step={0.05} value={detection.risk_threshold} onChange={(v) => setDetection({ ...detection, risk_threshold: v ?? 0 })} />
+            <InputNumber addonBefore={label('重分析阈值（条）', '案件新增告警数 ≥ 此值才重新深想一次。调低=更频繁重分析。')} value={detection.grew} onChange={(v) => setDetection({ ...detection, grew: v ?? 0 })} />
+            <InputNumber addonBefore={label('RAG 条数', '系统2 深想时检索的近期记忆/误报经验条数。')} value={detection.rag_limit} onChange={(v) => setDetection({ ...detection, rag_limit: v ?? 0 })} />
+            <InputNumber addonBefore={label('固有免疫 conf', '固有免疫（黑名单）命中时的秒拦置信度。')} step={0.05} value={detection.innate_conf} onChange={(v) => setDetection({ ...detection, innate_conf: v ?? 0 })} />
+            <InputNumber addonBefore={label('放回 conf', '分析师放回被误压信号时给的置信度。')} step={0.05} value={detection.restore_conf} onChange={(v) => setDetection({ ...detection, restore_conf: v ?? 0 })} />
+            <InputNumber addonBefore={label('白名单 TTL（天）', '免疫耐受（白名单）条目有效期天数，0 = 永久。')} value={detection.tolerance_ttl_days} onChange={(v) => setDetection({ ...detection, tolerance_ttl_days: v ?? 0 })} />
           </Space>
           <div>
             <Typography.Text strong>Mock 规则（仅 mock 模式生效）</Typography.Text>

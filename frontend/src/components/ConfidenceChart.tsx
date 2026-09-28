@@ -11,7 +11,7 @@ interface Bucket {
 
 export default function ConfidenceChart({ buckets, thresholds }: {
   buckets: Bucket[];
-  thresholds: { suppress_below: number; escalate_above: number };
+  thresholds: { suppress_below: number };
 }) {
   if (!buckets || buckets.length === 0) return <Empty description="暂无上板告警数据" />;
 
@@ -23,7 +23,7 @@ export default function ConfidenceChart({ buckets, thresholds }: {
   return (
     <Space direction="vertical" size={8} style={{ width: '100%' }}>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        置信度分布 · 抑制线 {thresholds.suppress_below} / 顶出线 {thresholds.escalate_above}
+        置信度分布 · 抑制线 {thresholds.suppress_below}
       </Typography.Text>
 
       <Column

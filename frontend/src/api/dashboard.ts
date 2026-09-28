@@ -8,7 +8,7 @@ export const dashboardApi = {
   calibration: async (source = '') =>
     (await http.get<{
       buckets: { label: string; count: number; tp: number; fp: number; tp_rate: number | null }[];
-      thresholds: { suppress_below: number; escalate_above: number };
+      thresholds: { suppress_below: number };
       sources: string[];
     }>(`/calibration${source ? `?source=${encodeURIComponent(source)}` : ''}`)).data,
   deviceTraffic: async (start: number, end: number) =>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, Space, Typography, Button, Segmented, Descriptions, App, Tag } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import HelpTip from '../components/HelpTip';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { configApi } from '../api/config';
 import { dashboardApi } from '../api/dashboard';
@@ -104,7 +105,7 @@ export default function Settings() {
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {canConfig && (
-          <Card title={t('knob')} size="small">
+          <Card title={<>{t('knob')}<HelpTip text="四档预设：宽松/正常/保守/战时，一键切换抑制线与预算。战时最激进（抑制线最低、预算最高）。" /></>} size="small">
             <Space wrap>
               {Object.entries(presets ?? {}).map(([name, p]) => (
                 <Button
@@ -112,7 +113,7 @@ export default function Settings() {
                   type={name === healthInfo?.knob ? 'primary' : 'default'}
                   onClick={() => setKnob(name)}
                 >
-                  {name}（抑制 {p.suppress_below} · 顶出 {p.escalate_above} · 预算 {p.budget}）
+                  {name}（抑制 {p.suppress_below} · 预算 {p.budget}）
                 </Button>
               ))}
             </Space>
@@ -120,7 +121,7 @@ export default function Settings() {
         )}
 
         {canConfig && (
-          <Card title="模型模式" size="small">
+          <Card title={<>模型模式<HelpTip text="切换杏仁核/前额叶用 mock 还是真实模型。auto=有 key 走真实否则 mock；mock=零成本跑通架构；real=强制真实模型。" /></>} size="small">
             <Typography.Paragraph type="secondary">
               切换杏仁核/前额叶用 mock 还是真实模型，免重启立即生效。
             </Typography.Paragraph>
