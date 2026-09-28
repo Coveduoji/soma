@@ -39,6 +39,14 @@
 - 免疫签名相似度匹配（可选进阶：Jaccard/SimHash/embedding）。
 - 免疫签名掩码粒度可配。
 
+## 待办 · 运维监控 / 告警
+
+> 现状只有进程重启兜底（systemd/docker restart）和 `/api/health` 被动探活，系统出问题（卡死、kafka 断流、死信堆积、磁盘占满、端口占用）**无主动告警通道**。
+
+- 最小可用：healthchecks.io cron 轮询 `/api/health`（校验 `kafka.alive` / `last_consume` 超时），异常发邮件/微信/钉钉。
+- 系统内自告警：复用 webhook 外发，加值班自检（kafka 死 / 10 分钟无消费 / 死信 > N / syslog 端口失败 / 磁盘 > 90% → 外发钉钉/企业微信）。
+- systemd 加 `WatchdogSec=30` + `sd_notify` 覆盖进程卡死；kafka/filebeat/nginx 补 healthcheck。
+
 ## 暂缓（`prototype/ROADMAP.md` 三）
 
 - 置信度校准（命门，上线前必做）。
