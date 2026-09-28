@@ -23,6 +23,9 @@ from app.api.routers import auth as auth_api, cases, dashboard, ingest as ingest
 
 logger = get_logger("app")
 
+# 进程启动时刻（/api/health 上报 uptime 用）
+_START_TIME = time.time()
+
 
 def _consolidate_loop() -> None:
     while True:
@@ -103,11 +106,37 @@ else:
 
 @app.get("/api/health")
 def health():
+    """真实健康检查：db / syslog / kafka 三组件聚合出 overall 状态（ok / degraded / down）。"""
+    db_ok = True
+    try:
+        counts = crud.counts()
+    except Exception:
+        counts = None
+        db_ok = False
+        logger.exception("health: 数据库计数失败")
+
+    sys = syslog_server.status()
+    kaf = kafka_consumer.status()
+    syslog_ok = bool(sys.get("listening", False))
+    # Kafka 未启用视为 n/a（不拖累整体）；启用则要求消费线程存活
+    kafka_ok = (not kaf.get("enabled")) or bool(kaf.get("alive", False))
+
+    if not db_ok:
+        overall = "down"
+    elif syslog_ok and kafka_ok:
+        overall = "ok"
+    else:
+        overall = "degraded"
+
     return {
-        "status": "ok",
-        "db": crud.counts(),
-        "syslog": syslog_server.status(),
-        "kafka": kafka_consumer.status(),
+        "status": overall,
+        "healthy": overall == "ok",
+        "version": app.version,
+        "uptime": round(time.time() - _START_TIME, 1),
+        "time": time.time(),
+        "db": {**(counts or {}), "ok": db_ok},
+        "syslog": {**sys, "ok": syslog_ok},
+        "kafka": {**kaf, "ok": kafka_ok},
         "knob": state.get_knob_name(),
         "mode": state.get_model_mode(),
     }
